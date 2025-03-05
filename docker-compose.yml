@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      context: ./MySQL
+      dockerfile: Dockerfile
+    container_name: mysql_eam
+    restart: always
+    ports:
+      - 5500:3306
+    volumes:
+      - ./MySQL/data:/var/lib/mysql
+    hostname: apps_database
+    networks:
+      - eam_apps
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p2320183A6A5FB"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  adminer:
+    image: adminer
+    container_name: adminer_wms
+    restart: always
+    ports:
+      - 8000:8080
+    networks:
+      - eam_apps
+
+networks:
+  eam_apps:
+    driver: bridge
