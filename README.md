@@ -51,7 +51,7 @@ The following Entity-Relationship (ER) Diagram visually represents the database 
 🔹 This relational model ensures a well-structured hospital management system, allowing efficient data retrieval and integrity enforcement. ✅
 
 relational schema:
-![Descripción de la imagen](assets/schema_db.jpg)
+![Descripción de la imagen](assets/schema_db_.jpg)
 
 
 Implementation: 
@@ -60,20 +60,8 @@ Implementation:
 
 📂 Project Structure
 
-src
- ├── main
- │   ├── java/com/example/miapp
- │   │   ├── controller    # REST controllers
- │   │   ├── dto           # Data Transfer Objects (DTOs)
- │   │   ├── models        # JPA Entities
- │   │   ├── repository    # JPA repository interfaces
- │   │   ├── services      # Business logic and services
- │   │   └── HospitalApplication.java  # Main application class
- │   ├── resources
- │   │   ├── application.properties  # API configuration
- │   │   ├── data.sql  # Optional initial data
- │   │   └── schema.sql  # Database schema definition
- ├── test  # Unit and integration tests
+![Descripción de la imagen](assets/tree.jpg)
+
 
 🔥 API Endpoints
 
