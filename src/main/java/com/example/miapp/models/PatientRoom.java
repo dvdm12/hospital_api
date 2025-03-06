@@ -16,7 +16,7 @@ import java.util.Date;
 @Table(name = "patient_room")
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder=true)
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
