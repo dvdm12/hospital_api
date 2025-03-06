@@ -4,7 +4,7 @@ import com.example.miapp.dto.PatientDto;
 import com.example.miapp.models.Patient;
 import com.example.miapp.repository.PatientRepository;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,19 +12,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service class for handling patient-related operations.
+ * Service class for managing patient-related operations.
  */
 @Service
+@RequiredArgsConstructor
 public class PatientService {
 
-    @Autowired
-    private PatientRepository patientRepository;
+    private final PatientRepository patientRepository;
 
     /**
      * Retrieves all patients from the database.
      *
      * @return List of {@link PatientDto} containing patient details.
      */
+    @Transactional(readOnly = true)
     public List<PatientDto> getAllPatients() {
         return patientRepository.findAll().stream()
                 .map(this::convertToDto)
@@ -38,10 +39,10 @@ public class PatientService {
      * @return {@link PatientDto} containing patient details.
      * @throws EntityNotFoundException If no patient is found with the given ID.
      */
+    @Transactional(readOnly = true)
     public PatientDto getPatientById(Long id) {
-        return patientRepository.findById(id)
-                .map(this::convertToDto)
-                .orElseThrow(() -> new EntityNotFoundException("Patient not found with ID: " + id));
+        Patient patient = findPatientById(id);
+        return convertToDto(patient);
     }
 
     /**
@@ -66,10 +67,9 @@ public class PatientService {
      */
     @Transactional
     public PatientDto updatePatient(Long id, PatientDto patientDto) {
-        Patient existingPatient = patientRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Patient not found with ID: " + id));
+        Patient existingPatient = findPatientById(id);
 
-        Patient updatedPatient = existingPatient.toBuilder()
+        existingPatient = existingPatient.toBuilder()
                 .firstName(patientDto.getFirstName())
                 .lastName(patientDto.getLastName())
                 .birthDate(patientDto.getBirthDate())
@@ -77,7 +77,7 @@ public class PatientService {
                 .address(patientDto.getAddress())
                 .build();
 
-        return convertToDto(patientRepository.save(updatedPatient));
+        return convertToDto(patientRepository.save(existingPatient));
     }
 
     /**
@@ -92,6 +92,18 @@ public class PatientService {
             throw new EntityNotFoundException("Patient not found with ID: " + id);
         }
         patientRepository.deleteById(id);
+    }
+
+    /**
+     * Finds a patient by ID and throws an exception if not found.
+     *
+     * @param id The ID of the patient.
+     * @return The {@link Patient} entity.
+     * @throws EntityNotFoundException If the patient does not exist.
+     */
+    private Patient findPatientById(Long id) {
+        return patientRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Patient not found with ID: " + id));
     }
 
     /**
