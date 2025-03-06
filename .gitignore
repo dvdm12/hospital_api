@@ -3,21 +3,42 @@ HELP.md
 
 # Ignorar la carpeta target/ excepto en rutas específicas
 target/
-!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# Ignorar la carpeta build/ excepto en rutas específicas
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Permitir solo el wrapper de Maven dentro de .mvn/
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Archivos y carpetas generadas por Maven
+pom.xml.tag
+pom.xml.releaseBackup
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+# Ejecutables de Maven Wrapper
+mvnw
+mvnw.cmd
+
+### Spring Tool Suite (STS) ###
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -28,9 +49,20 @@ target/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
 ### VS Code ###
 .vscode/
+
+# Archivos de configuración del entorno
+.DS_Store
+Thumbs.db
+*.log
+.env
+*.swp
+
+# Archivos de Docker innecesarios
+docker-compose.override.yml
+.docker/
+
+# Dependencias de Node.js (si aplican)
+node_modules/
