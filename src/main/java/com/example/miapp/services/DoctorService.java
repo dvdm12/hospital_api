@@ -4,7 +4,7 @@ import com.example.miapp.dto.DoctorDto;
 import com.example.miapp.models.Doctor;
 import com.example.miapp.repository.DoctorRepository;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,16 +15,17 @@ import java.util.stream.Collectors;
  * Service class for managing doctor-related operations.
  */
 @Service
+@RequiredArgsConstructor
 public class DoctorService {
 
-    @Autowired
-    private DoctorRepository doctorRepository;
+    private final DoctorRepository doctorRepository;
 
     /**
      * Retrieves all doctors from the database.
      *
      * @return List of {@link DoctorDto} containing doctor details.
      */
+    @Transactional(readOnly = true)
     public List<DoctorDto> getAllDoctors() {
         return doctorRepository.findAll().stream()
                 .map(this::convertToDto)
@@ -38,10 +39,10 @@ public class DoctorService {
      * @return {@link DoctorDto} containing doctor details.
      * @throws EntityNotFoundException If no doctor is found with the given ID.
      */
+    @Transactional(readOnly = true)
     public DoctorDto getDoctorById(Long id) {
-        return doctorRepository.findById(id)
-                .map(this::convertToDto)
-                .orElseThrow(() -> new EntityNotFoundException("Doctor not found with ID: " + id));
+        Doctor doctor = findDoctorById(id);
+        return convertToDto(doctor);
     }
 
     /**
@@ -66,17 +67,16 @@ public class DoctorService {
      */
     @Transactional
     public DoctorDto updateDoctor(Long id, DoctorDto doctorDto) {
-        Doctor existingDoctor = doctorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Doctor not found with ID: " + id));
+        Doctor existingDoctor = findDoctorById(id);
 
-        Doctor updatedDoctor = existingDoctor.toBuilder()
+        existingDoctor = existingDoctor.toBuilder()
                 .firstName(doctorDto.getFirstName())
                 .lastName(doctorDto.getLastName())
                 .phone(doctorDto.getPhone())
                 .email(doctorDto.getEmail())
                 .build();
 
-        return convertToDto(doctorRepository.save(updatedDoctor));
+        return convertToDto(doctorRepository.save(existingDoctor));
     }
 
     /**
@@ -91,6 +91,18 @@ public class DoctorService {
             throw new EntityNotFoundException("Doctor not found with ID: " + id);
         }
         doctorRepository.deleteById(id);
+    }
+
+    /**
+     * Finds a doctor by ID and throws an exception if not found.
+     *
+     * @param id The ID of the doctor.
+     * @return The {@link Doctor} entity.
+     * @throws EntityNotFoundException If the doctor does not exist.
+     */
+    private Doctor findDoctorById(Long id) {
+        return doctorRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Doctor not found with ID: " + id));
     }
 
     /**
