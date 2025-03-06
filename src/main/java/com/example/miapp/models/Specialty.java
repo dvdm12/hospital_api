@@ -12,6 +12,7 @@ import java.util.List;
 @Table(name = "specialty")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "doctorSpecialties")

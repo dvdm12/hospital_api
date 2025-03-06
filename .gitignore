@@ -1,4 +1,7 @@
+# Ignorar HELP.md
 HELP.md
+
+# Ignorar la carpeta target/ excepto en rutas específicas
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

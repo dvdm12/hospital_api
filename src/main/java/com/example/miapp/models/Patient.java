@@ -14,6 +14,7 @@ import java.util.List;
 @Table(name = "patient")
 @Getter
 @Setter
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = {"appointments", "medicalRecord", "patientRooms"})

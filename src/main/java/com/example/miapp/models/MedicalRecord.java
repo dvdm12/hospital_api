@@ -13,6 +13,7 @@ import java.util.Date;
 @Table(name = "medical_record")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "patient")
