@@ -4,7 +4,7 @@ import com.example.miapp.dto.PatientDto;
 import com.example.miapp.models.Patient;
 import com.example.miapp.repository.PatientRepository;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,16 +12,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for managing Patient operations.
+ * Service class for handling patient-related operations.
  */
 @Service
-@RequiredArgsConstructor
 public class PatientService {
 
-    private final PatientRepository patientRepository;
+    @Autowired
+    private PatientRepository patientRepository;
 
     /**
-     * Retrieves all patients and converts them to DTOs.
+     * Retrieves all patients from the database.
+     *
+     * @return List of {@link PatientDto} containing patient details.
      */
     public List<PatientDto> getAllPatients() {
         return patientRepository.findAll().stream()
@@ -30,7 +32,11 @@ public class PatientService {
     }
 
     /**
-     * Finds a patient by ID and converts it to DTO.
+     * Retrieves a patient by its ID.
+     *
+     * @param id The ID of the patient.
+     * @return {@link PatientDto} containing patient details.
+     * @throws EntityNotFoundException If no patient is found with the given ID.
      */
     public PatientDto getPatientById(Long id) {
         return patientRepository.findById(id)
@@ -39,7 +45,10 @@ public class PatientService {
     }
 
     /**
-     * Saves a new patient using a DTO.
+     * Saves a new patient in the database.
+     *
+     * @param patientDto The {@link PatientDto} containing the new patient details.
+     * @return The saved {@link PatientDto}.
      */
     @Transactional
     public PatientDto savePatient(PatientDto patientDto) {
@@ -48,23 +57,34 @@ public class PatientService {
     }
 
     /**
-     * Updates an existing patient.
+     * Updates an existing patient's information.
+     *
+     * @param id         The ID of the patient to be updated.
+     * @param patientDto The updated {@link PatientDto} data.
+     * @return The updated {@link PatientDto}.
+     * @throws EntityNotFoundException If the patient does not exist.
      */
     @Transactional
     public PatientDto updatePatient(Long id, PatientDto patientDto) {
-        if (!patientRepository.existsById(id)) {
-            throw new EntityNotFoundException("Patient not found with ID: " + id);
-        }
+        Patient existingPatient = patientRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Patient not found with ID: " + id));
 
-        Patient patient = convertToEntity(patientDto).toBuilder()
-                .id(id) // Ensure the ID remains the same
+        Patient updatedPatient = existingPatient.toBuilder()
+                .firstName(patientDto.getFirstName())
+                .lastName(patientDto.getLastName())
+                .birthDate(patientDto.getBirthDate())
+                .phone(patientDto.getPhone())
+                .address(patientDto.getAddress())
                 .build();
 
-        return convertToDto(patientRepository.save(patient));
+        return convertToDto(patientRepository.save(updatedPatient));
     }
 
     /**
-     * Deletes a patient by ID.
+     * Deletes a patient by its ID.
+     *
+     * @param id The ID of the patient to be deleted.
+     * @throws EntityNotFoundException If the patient does not exist.
      */
     @Transactional
     public void deletePatient(Long id) {
@@ -75,7 +95,10 @@ public class PatientService {
     }
 
     /**
-     * Converts a Patient entity to PatientDto.
+     * Converts a {@link Patient} entity to a {@link PatientDto}.
+     *
+     * @param patient The entity to convert.
+     * @return The corresponding {@link PatientDto}.
      */
     private PatientDto convertToDto(Patient patient) {
         return PatientDto.builder()
@@ -89,7 +112,10 @@ public class PatientService {
     }
 
     /**
-     * Converts a PatientDto to a Patient entity.
+     * Converts a {@link PatientDto} to a {@link Patient} entity.
+     *
+     * @param dto The DTO to convert.
+     * @return The corresponding {@link Patient} entity.
      */
     private Patient convertToEntity(PatientDto dto) {
         return Patient.builder()

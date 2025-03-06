@@ -15,7 +15,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder=true)
 @ToString(exclude = {"appointments", "doctorSpecialties"})
 public class Doctor {
 

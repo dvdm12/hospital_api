@@ -12,7 +12,7 @@ import java.util.List;
 @Table(name = "room")
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder=true)
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "patientRooms")

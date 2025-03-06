@@ -1,6 +1,6 @@
 package com.example.miapp.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,10 +13,11 @@ import java.util.Date;
 @Table(name = "medical_record")
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "patient")
+@EqualsAndHashCode(exclude = "patient")
 public class MedicalRecord {
 
     /** Unique identifier for the medical record. */
@@ -34,12 +35,14 @@ public class MedicalRecord {
     @Temporal(TemporalType.DATE)
     private Date entryDate;
 
-    /** The doctor responsible for this medical record. */
-    private String responsibleDoctor;
-
     /** The patient associated with this medical record. */
-    @JsonIgnore
+    @JsonManagedReference
     @OneToOne
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
+
+    /** The doctor responsible for this medical record. */
+    @ManyToOne
+    @JoinColumn(name = "doctor_id", nullable = false)
+    private Doctor responsibleDoctor;
 }
