@@ -4,7 +4,7 @@ import com.example.miapp.dto.RoomDto;
 import com.example.miapp.models.Room;
 import com.example.miapp.repository.RoomRepository;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,16 +15,17 @@ import java.util.stream.Collectors;
  * Service class for managing room-related operations.
  */
 @Service
+@RequiredArgsConstructor
 public class RoomService {
 
-    @Autowired
-    private RoomRepository roomRepository;
+    private final RoomRepository roomRepository;
 
     /**
      * Retrieves all rooms from the database.
      *
      * @return List of {@link RoomDto} containing room details.
      */
+    @Transactional(readOnly = true)
     public List<RoomDto> getAllRooms() {
         return roomRepository.findAll().stream()
                 .map(this::convertToDto)
@@ -38,10 +39,10 @@ public class RoomService {
      * @return {@link RoomDto} containing room details.
      * @throws EntityNotFoundException If no room is found with the given ID.
      */
+    @Transactional(readOnly = true)
     public RoomDto getRoomById(Long id) {
-        return roomRepository.findById(id)
-                .map(this::convertToDto)
-                .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + id));
+        Room room = findRoomById(id);
+        return convertToDto(room);
     }
 
     /**
@@ -66,17 +67,16 @@ public class RoomService {
      */
     @Transactional
     public RoomDto updateRoom(Long id, RoomDto roomDto) {
-        Room existingRoom = roomRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + id));
+        Room existingRoom = findRoomById(id);
 
-        Room updatedRoom = existingRoom.toBuilder()
+        existingRoom = existingRoom.toBuilder()
                 .number(roomDto.getNumber())
                 .floor(roomDto.getFloor())
                 .type(roomDto.getType())
                 .occupancyStatus(roomDto.getOccupancyStatus())
                 .build();
 
-        return convertToDto(roomRepository.save(updatedRoom));
+        return convertToDto(roomRepository.save(existingRoom));
     }
 
     /**
@@ -93,6 +93,24 @@ public class RoomService {
         roomRepository.deleteById(id);
     }
 
+    /**
+     * Finds a room by ID and throws an exception if not found.
+     *
+     * @param id The ID of the room.
+     * @return The {@link Room} entity.
+     * @throws EntityNotFoundException If the room does not exist.
+     */
+    private Room findRoomById(Long id) {
+        return roomRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + id));
+    }
+
+    /**
+     * Converts a {@link Room} entity to a {@link RoomDto}.
+     *
+     * @param room The entity to convert.
+     * @return The corresponding {@link RoomDto}.
+     */
     private RoomDto convertToDto(Room room) {
         return RoomDto.builder()
                 .id(room.getId())
@@ -103,6 +121,12 @@ public class RoomService {
                 .build();
     }
 
+    /**
+     * Converts a {@link RoomDto} to a {@link Room} entity.
+     *
+     * @param dto The DTO to convert.
+     * @return The corresponding {@link Room} entity.
+     */
     private Room convertToEntity(RoomDto dto) {
         return Room.builder()
                 .id(dto.getId())
