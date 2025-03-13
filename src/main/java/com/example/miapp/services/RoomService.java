@@ -29,7 +29,7 @@ public class RoomService {
     public List<RoomDto> getAllRooms() {
         return roomRepository.findAll().stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList());  
     }
 
     /**
