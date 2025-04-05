@@ -1,9 +1,9 @@
 package com.example.miapp.services;
 
 import com.example.miapp.dto.PatientRoomDto;
-import com.example.miapp.models.Patient;
-import com.example.miapp.models.PatientRoom;
-import com.example.miapp.models.Room;
+import com.example.miapp.entity.Patient;
+import com.example.miapp.entity.PatientRoom;
+import com.example.miapp.entity.Room;
 import com.example.miapp.repository.PatientRepository;
 import com.example.miapp.repository.PatientRoomRepository;
 import com.example.miapp.repository.RoomRepository;

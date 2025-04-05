@@ -8,19 +8,20 @@ services:
     container_name: mysql_eam
     restart: always
     ports:
-      - 5500:3306
+      - "${MYSQL_PORT}:3306"
     volumes:
-      - ./MYSQL/data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     hostname: apps_database
     networks:
       - eam_apps
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: 2320183A6A5FB
-      MYSQL_DATABASE: db_eam
-      MYSQL_USER: user_db
-      MYSQL_PASSWORD: 2320183A6A5FB
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p2320183A6A5FB"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -37,3 +38,6 @@ services:
 networks:
   eam_apps:
     driver: bridge
+
+volumes:
+  mysql_data:

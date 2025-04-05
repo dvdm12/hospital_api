@@ -1,7 +1,7 @@
 package com.example.miapp.services;
 
 import com.example.miapp.dto.RoomDto;
-import com.example.miapp.models.Room;
+import com.example.miapp.entity.Room;
 import com.example.miapp.repository.RoomRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;

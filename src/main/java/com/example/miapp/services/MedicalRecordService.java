@@ -1,9 +1,9 @@
 package com.example.miapp.services;
 
 import com.example.miapp.dto.MedicalRecordDto;
-import com.example.miapp.models.MedicalRecord;
-import com.example.miapp.models.Patient;
-import com.example.miapp.models.Doctor;
+import com.example.miapp.entity.Doctor;
+import com.example.miapp.entity.MedicalRecord;
+import com.example.miapp.entity.Patient;
 import com.example.miapp.repository.MedicalRecordRepository;
 import com.example.miapp.repository.PatientRepository;
 import com.example.miapp.repository.DoctorRepository;

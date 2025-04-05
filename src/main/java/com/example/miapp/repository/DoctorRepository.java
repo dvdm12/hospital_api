@@ -1,8 +1,9 @@
 package com.example.miapp.repository;
 
-import com.example.miapp.models.Doctor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import com.example.miapp.entity.Doctor;
 
 import java.util.Optional;
 

@@ -1,7 +1,7 @@
 package com.example.miapp.services;
 
 import com.example.miapp.dto.DoctorDto;
-import com.example.miapp.models.Doctor;
+import com.example.miapp.entity.Doctor;
 import com.example.miapp.repository.DoctorRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
