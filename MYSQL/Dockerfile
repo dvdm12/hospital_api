@@ -1,2 +1,0 @@
-FROM mysql:8.0.22
-EXPOSE 3306

@@ -1,39 +1,61 @@
-version: '3.8'
-
 services:
   db:
-    build:
-      context: ./MYSQL
-      dockerfile: Dockerfile
+    image: mysql:8.0.22
     container_name: mysql_eam
     restart: always
     ports:
       - "${MYSQL_PORT}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    hostname: apps_database
+    hostname: db
     networks:
       - eam_apps
     env_file:
       - .env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "db", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 30s
       timeout: 10s
       retries: 5
 
+  app:
+    build: .
+    container_name: spring_app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${SPRING_APP_PORT}:${SPRING_APP_PORT}"
+    env_file:
+      - .env
+    environment:
+      SPRING_APPLICATION_NAME: ${SPRING_APP_NAME}
+      SERVER_PORT: ${SPRING_APP_PORT}
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+    networks:
+      - eam_apps
+
   adminer:
     image: adminer
-    container_name: adminer_wms
+    container_name: adminer_eam
     restart: always
     ports:
       - 8000:8080
     networks:
       - eam_apps
+    depends_on:
+      db:
+        condition: service_healthy
 
 networks:
   eam_apps:
