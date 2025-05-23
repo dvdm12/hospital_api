@@ -60,9 +60,6 @@ Thumbs.db
 .env
 *.swp
 
-# Archivos de Docker innecesarios
-docker-compose.override.yml
-.docker/
 
 # Dependencias de Node.js (si aplican)
 node_modules/
