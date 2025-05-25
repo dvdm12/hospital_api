@@ -1,66 +1,91 @@
 services:
+
+  # 1) Base de datos MySQL
   db:
     image: mysql:8.0.22
     container_name: mysql_eam
     restart: always
-    ports:
-      - "${MYSQL_PORT}:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
     hostname: db
-    networks:
-      - eam_apps
     env_file:
       - .env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_DATABASE:       ${MYSQL_DATABASE}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "db", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 30s
       timeout: 10s
-      retries: 4
+      retries: 5
+    networks:
+      - eam_apps
 
+  # 2) Aplicación Spring Boot
   app:
-    build: .
-    container_name: spring_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hospital-api:latest
+    container_name: hospital_api_app
     restart: always
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "${SPRING_APP_PORT}:${SPRING_APP_PORT}"
     env_file:
       - .env
     environment:
-      SPRING_APPLICATION_NAME: ${SPRING_APP_NAME}
-      SERVER_PORT: ${SPRING_APP_PORT}
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/db_eam
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_SHOW_SQL: "true"
-      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
-      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
-    networks:
-      - eam_apps
-
-  adminer:
-    image: adminer
-    container_name: adminer_eam
-    restart: always
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
     ports:
-      - 8000:8080
-    networks:
-      - eam_apps
+      - "${SPRING_APP_PORT}:${SPRING_APP_PORT}"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - eam_apps
 
+  # 3) Grafana para visualización
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - eam_apps
+
+  # 4) Adminer para gestión de BD
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - eam_apps
+
+# Red compartida
 networks:
   eam_apps:
     driver: bridge
 
+# Volúmenes para persistencia
 volumes:
   mysql_data:
     name: mysql_eam_data
+  grafana_data:

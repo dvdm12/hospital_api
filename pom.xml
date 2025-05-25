@@ -113,19 +113,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- MapStruct -->
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-            <version>${mapstruct.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct-processor</artifactId>
-            <version>${mapstruct.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- ModelMapper (alternativa a MapStruct para DTOs) -->
         <dependency>
             <groupId>org.modelmapper</groupId>
@@ -154,6 +141,16 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+        </dependency>
+
 
         <!-- Testing -->
         <dependency>
@@ -202,6 +199,12 @@
             <artifactId>rest-assured</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.5.5.Final</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -240,7 +243,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surefire.plugin.version}</version>
                 <configuration>
-                    <useSystemClassLoader>false</useSystemClassLoader>
+                    <useSystemClassLoader>true</useSystemClassLoader>
+                    <systemPropertyVariables>
+                        <spring.profiles.active>test</spring.profiles.active>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
 

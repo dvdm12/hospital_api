@@ -1,25 +1,86 @@
 spring:
+  application:
+    name: ${SPRING_APP_NAME:api}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/db_eam?createDatabaseIfNotExist=true&serverTimezone=UTC}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:2320183A6A5FB}
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect    
+        globally_quoted_identifiers: true
+
+  security:
+    user:
+      name: ${SPRING_SECURITY_USER_NAME:admin}
+      password: ${SPRING_SECURITY_USER_PASSWORD:admin}
+
+server:
+  port: ${SPRING_APP_PORT:4500}
+
 logging:
   level:
-    org:
-      springframework: DEBUG
-      hibernate:
-        SQL: DEBUG
-        type:
-          descriptor:
-            sql:
-              BasicBinder: TRACE
-              
+    org.springframework: INFO
+
 springdoc:
-  swagger-ui:
+  api-docs:
     enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,beans
+  endpoint:
+    health:
+      show-details: always
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: false
+
+  security:
+    user:
+      name: ${SPRING_SECURITY_USER_NAME:admin}
+      password: ${SPRING_SECURITY_USER_PASSWORD:admin}
+
+server:
+  port: ${SPRING_APP_PORT}
+
+springdoc:
+  api-docs:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
