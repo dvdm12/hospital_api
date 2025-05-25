@@ -84,3 +84,10 @@ management:
   endpoint:
     health:
       show-details: never
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:qTmcAnR2Cx36vEwVzD4BhJpLsYtFuZ7X8GkNeQaM9P5rSxWyK2}
+    expirationInMs: ${JWT_EXPIRATION:86400000}
+    refreshExpirationInMs: ${JWT_REFRESH_EXPIRATION:604800000}
+    cookieName: jwt_token
