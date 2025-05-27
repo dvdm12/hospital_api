@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle}">Panel de Administración</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Fuentes modernas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ... (mismo CSS que antes) ... */
+        :root {
+            --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-solid: #667eea;
+            --secondary: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --secondary-solid: #4facfe;
+            --accent: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --white: #ffffff;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+            --radius-sm: 0.375rem;
+            --radius: 0.5rem;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
+            --radius-2xl: 2rem;
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            color: var(--gray-100);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .bg-modern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(102, 126, 234, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102, 126, 234, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            color: var(--gray-100);
+            padding: 2rem;
+            border-radius: var(--radius-2xl);
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-2xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--white), var(--primary-solid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-info {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .user-detail {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-700);
+            font-size: 0.875rem;
+        }
+
+        .user-detail strong {
+            font-weight: 600;
+            color: var(--gray-200);
+        }
+
+        main {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .stats-section,
+        .links-section {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-2xl);
+            padding: 2rem;
+            box-shadow: var(--shadow-2xl);
+        }
+
+        .stats-section h2,
+        .links-section h2 {
+            font-size: 1.5rem;
+            color: var(--gray-100);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 1rem;
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--gray-700);
+            padding: 2rem;
+            border-radius: var(--radius-xl);
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .stat-card:nth-child(1)::before {
+            background: var(--primary);
+        }
+
+        .stat-card:nth-child(2)::before {
+            background: var(--secondary);
+        }
+
+        .stat-card:nth-child(3)::before {
+            background: var(--accent);
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary-solid);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: var(--white);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-400);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .chart-card {
+            background: rgba(30, 41, 59, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            border: 1px solid var(--gray-700);
+            transition: var(--transition);
+        }
+
+        .chart-card:hover {
+            border-color: var(--primary-solid);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .chart-card h3 {
+            font-size: 1rem;
+            color: var(--gray-200);
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .quick-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--gray-700);
+            color: var(--gray-100);
+            text-decoration: none;
+            padding: 1.25rem 1.5rem;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-link:hover {
+            border-color: var(--primary-solid);
+            background: rgba(30, 41, 59, 0.8);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .logout-section {
+            text-align: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--gray-700);
+        }
+
+        .logout-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(239, 68, 68, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--error);
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header {
+                padding: 1.5rem;
+                text-align: center;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .user-info {
+                justify-content: center;
+                gap: 1rem;
+            }
+
+            .charts-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .quick-links {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chart-container {
+                height: 250px;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-modern">
+        <div class="grid-overlay"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>🏥 Panel de Administración</h1>
+            <div class="user-info">
+                <div class="user-detail">
+                    <strong>👤 Bienvenido:</strong> <span th:text="${username}">admin</span>
+                </div>
+                <div class="user-detail">
+                    <strong>🎭 Rol:</strong> <span th:text="${userRole}">Administrador</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="stats-section">
+                <h2>📊 Estadísticas del Sistema</h2>
+                
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-number" th:text="${totalUsers}">0</div>
+                        <div class="stat-label">👥 Total Usuarios</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" th:text="${totalDoctors}">0</div>
+                        <div class="stat-label">👨‍⚕️ Doctores</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" th:text="${totalPatients}">0</div>
+                        <div class="stat-label">👤 Pacientes</div>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <!-- Solo gráficas con datos reales -->
+                    <div class="chart-card">
+                        <h3>📊 Distribución de Usuarios</h3>
+                        <div class="chart-container">
+                            <canvas id="userDistributionChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3>🥧 Porcentaje por Tipo</h3>
+                        <div class="chart-container">
+                            <canvas id="percentageChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Gráficas condicionales - solo si hay datos -->
+                    <div class="chart-card" th:if="${monthlyData != null}">
+                        <h3>📈 Registros Mensuales</h3>
+                        <div class="chart-container">
+                            <canvas id="monthlyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card" th:if="${departmentStats != null}">
+                        <h3>🏥 Por Departamento</h3>
+                        <div class="chart-container">
+                            <canvas id="departmentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="links-section">
+                <h2>🔗 Enlaces Rápidos</h2>
+                <div class="quick-links">
+                    <a href="/admin/users" class="quick-link">
+                        👥 Gestionar Usuarios
+                    </a>
+                    <a href="/doctors" class="quick-link">
+                        👨‍⚕️ Gestionar Doctores
+                    </a>
+                    <a href="/patients" class="quick-link">
+                        👤 Gestionar Pacientes
+                    </a>
+                    <a href="/register" class="quick-link">
+                        ➕ Registrar Usuario
+                    </a>
+                </div>
+                
+                <div class="logout-section">
+                    <a href="/auth/logout" class="logout-btn">
+                        <span>🚪</span>
+                        Cerrar Sesión
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script th:inline="javascript">
+        // ✅ DATOS REALES del modelo
+        const users = /*[[${totalUsers}]]*/ 0;
+        const doctors = /*[[${totalDoctors}]]*/ 0;
+        const patients = /*[[${totalPatients}]]*/ 0;
+
+        // ✅ DATOS OPCIONALES (solo si existen en el modelo)
+        const monthlyData = /*[[${monthlyData}]]*/ null;
+        const departmentStats = /*[[${departmentStats}]]*/ null;
+
+        // Paleta de colores moderna
+        const colors = {
+            primary: '#ff6b6b',
+            secondary: '#4ecdc4', 
+            tertiary: '#45b7d1',
+            quaternary: '#96ceb4'
+        };
+
+        // Configuración común para tooltips
+        const tooltipConfig = {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#f1f5f9',
+            bodyColor: '#f1f5f9',
+            borderColor: 'rgba(102, 126, 234, 0.3)',
+            borderWidth: 1,
+            cornerRadius: 12,
+            displayColors: true
+        };
+
+        // 1. ✅ Gráfico de distribución (DATOS REALES)
+        new Chart(document.getElementById('userDistributionChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Usuarios Total', 'Doctores', 'Pacientes'],
+                datasets: [{
+                    data: [users, doctors, patients],
+                    backgroundColor: [colors.primary, colors.secondary, colors.tertiary],
+                    borderColor: [colors.primary, colors.secondary, colors.tertiary],
+                    borderWidth: 2,
+                    borderRadius: 12
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: tooltipConfig
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(102, 126, 234, 0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+
+        // 2. ✅ Gráfico de porcentajes (DATOS REALES)
+        const total = users + doctors + patients;
+        if (total > 0) {
+            new Chart(document.getElementById('percentageChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Usuarios', 'Doctores', 'Pacientes'],
+                    datasets: [{
+                        data: [users, doctors, patients],
+                        backgroundColor: [colors.primary, colors.secondary, colors.tertiary],
+                        borderColor: 'rgba(15, 23, 42, 0.8)',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', font: { size: 12 } }
+                        },
+                        tooltip: {
+                            ...tooltipConfig,
+                            callbacks: {
+                                label: function(context) {
+                                    const percentage = ((context.parsed * 100) / total).toFixed(1);
+                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. ⚠️ Gráfico mensual (SOLO SI HAY DATOS)
+        if (monthlyData && monthlyData.length > 0) {
+            new Chart(document.getElementById('monthlyChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(item => item.month),
+                    datasets: [{
+                        label: 'Nuevos Registros',
+                        data: monthlyData.map(item => item.count),
+                        borderColor: colors.quaternary,
+                        backgroundColor: colors.quaternary + '20',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8' } },
+                        tooltip: tooltipConfig
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(102, 126, 234, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 4. ⚠️ Gráfico por departamento (SOLO SI HAY DATOS)
+        if (departmentStats && departmentStats.length > 0) {
+            new Chart(document.getElementById('departmentChart').getContext('2d'), {
+                type: 'polarArea',
+                data: {
+                    labels: departmentStats.map(dept => dept.name),
+                    datasets: [{
+                        data: departmentStats.map(dept => dept.count),
+                        backgroundColor: [
+                            colors.primary + '80',
+                            colors.secondary + '80', 
+                            colors.tertiary + '80',
+                            colors.quaternary + '80'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', font: { size: 11 } }
+                        },
+                        tooltip: tooltipConfig
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

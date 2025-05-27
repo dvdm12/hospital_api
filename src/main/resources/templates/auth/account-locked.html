@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cuenta Bloqueada - Sistema Hospitalario</title>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px;">
+        <h1>🔒 Cuenta Temporalmente Bloqueada</h1>
+        
+        <div style="background-color: #ffebee; padding: 20px; border: 2px solid #f44336; border-radius: 10px; margin: 20px auto; max-width: 600px;">
+            <h2 style="color: #d32f2f;">⚠️ Acceso Restringido</h2>
+            <p style="font-size: 16px;">Su cuenta ha sido temporalmente bloqueada debido a múltiples intentos de inicio de sesión fallidos.</p>
+        </div>
+        
+        <div style="background-color: #e3f2fd; padding: 20px; border: 1px solid #2196f3; border-radius: 10px; margin: 20px auto; max-width: 600px;">
+            <h3>🕐 Información del Bloqueo</h3>
+            <ul style="text-align: left; display: inline-block;">
+                <li><strong>Tiempo de bloqueo:</strong> <span th:text="${lockoutTime != null ? lockoutTime : '15 minutos'}">15 minutos</span></li>
+                <li><strong>Intentos fallidos:</strong> <span th:text="${failedAttempts != null ? failedAttempts : '5'}">5</span></li>
+                <li><strong>Último intento:</strong> <span th:text="${lastAttempt != null ? lastAttempt : 'Hace pocos minutos'}">Hace pocos minutos</span></li>
+                <li><strong>Tiempo restante:</strong> <span id="countdown" th:text="${timeRemaining != null ? timeRemaining : '14:30'}">14:30</span></li>
+            </ul>
+        </div>
+        
+        <div style="background-color: #fff3e0; padding: 20px; border: 1px solid #ff9800; border-radius: 10px; margin: 20px auto; max-width: 600px;">
+            <h3>💡 ¿Qué puede hacer?</h3>
+            <div style="text-align: left;">
+                <h4>🔄 Opciones Inmediatas:</h4>
+                <ul>
+                    <li><strong>Esperar:</strong> Su cuenta se desbloqueará automáticamente cuando expire el tiempo</li>
+                    <li><strong>Verificar credenciales:</strong> Asegúrese de recordar su usuario y contraseña correctos</li>
+                    <li><strong>Recuperar contraseña:</strong> <a href="/forgot-password">Haga clic aquí si olvidó su contraseña</a></li>
+                </ul>
+                
+                <h4>📞 Contactar Soporte:</h4>
+                <ul>
+                    <li><strong>Email:</strong> soporte@hospital.com</li>
+                    <li><strong>Teléfono:</strong> +1 (555) 123-4567</li>
+                    <li><strong>Extensión interna:</strong> 2024 (para personal del hospital)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div style="background-color: #f3e5f5; padding: 20px; border: 1px solid #9c27b0; border-radius: 10px; margin: 20px auto; max-width: 600px;">
+            <h3>🛡️ Medidas de Seguridad</h3>
+            <p style="text-align: left;">
+                Este bloqueo temporal es una medida de seguridad para proteger su cuenta contra accesos no autorizados. 
+                En un entorno hospitalario, la protección de datos médicos es crítica y cumplimos con estrictos 
+                protocolos de seguridad.
+            </p>
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <button onclick="location.reload()" 
+                    style="background-color: #2196f3; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; margin: 5px;">
+                🔄 Actualizar Estado
+            </button>
+            
+            <button onclick="window.location.href='/forgot-password'" 
+                    style="background-color: #ff9800; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; margin: 5px;">
+                🔐 Recuperar Contraseña
+            </button>
+        </div>
+        
+        <hr style="margin: 30px 0;">
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px;">
+            <h4>🏥 Sistema Hospitalario</h4>
+            <p style="font-size: 14px; color: #666;">
+                Para su seguridad y la protección de información médica confidencial, 
+                mantenemos altos estándares de seguridad en el acceso al sistema.
+            </p>
+            <p>
+                <a href="/home">🏠 Página de Inicio</a> | 
+                <a href="/contact">📞 Contacto</a> | 
+                <a href="/about">ℹ️ Acerca del Sistema</a>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Contador regresivo simulado (en implementación real vendría del servidor)
+        let timeLeft = 15 * 60; // 15 minutos en segundos
+        
+        function updateCountdown() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            
+            document.getElementById('countdown').textContent = 
+                minutes.toString().padStart(2, '0') + ':' + 
+                seconds.toString().padStart(2, '0');
+            
+            if (timeLeft <= 0) {
+                document.getElementById('countdown').textContent = '¡Puede intentar ahora!';
+                document.getElementById('countdown').style.color = 'green';
+                document.getElementById('countdown').style.fontWeight = 'bold';
+                
+                // Mostrar botón para intentar login
+                const tryAgainBtn = document.createElement('button');
+                tryAgainBtn.textContent = '🔓 Intentar Iniciar Sesión';
+                tryAgainBtn.style.cssText = 'background-color: #4caf50; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; margin: 10px;';
+                tryAgainBtn.onclick = () => window.location.href = '/login';
+                
+                document.querySelector('div[style*="margin: 30px 0"]').appendChild(tryAgainBtn);
+                
+                clearInterval(countdown);
+            } else {
+                timeLeft--;
+            }
+        }
+        
+        // Actualizar cada segundo
+        const countdown = setInterval(updateCountdown, 1000);
+        updateCountdown(); // Ejecutar inmediatamente
+        
+        // Auto-refresh cada 5 minutos para verificar el estado
+        setTimeout(() => {
+            location.reload();
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

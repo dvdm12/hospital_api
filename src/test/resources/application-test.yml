@@ -1,10 +1,55 @@
+# Configuración específica para tests
 spring:
+  application:
+    name: hospital-test
+  
+  # Base de datos en memoria para tests
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
-    password:
+    password: 
+    hikari:
+      maximum-pool-size: 5
+  
+  # JPA configuración para tests
   jpa:
     hibernate:
       ddl-auto: create-drop
     show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+  
+  # Console H2 para debugging (opcional)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# Logging mínimo para tests
+logging:
+  level:
+    com.example.miapp: DEBUG
+    org.springframework.test: WARN
+    org.springframework.security: WARN
+    org.hibernate: WARN
+    org.springframework.web: WARN
+    root: WARN
+
+# Configuración JWT para tests
+app:
+  jwt:
+    secret: test-secret-key-for-testing-minimum-256-bits-long-string-here-123456789012345
+    expiration-in-ms: 60000      # 1 minuto para tests rápidos
+    refresh-expiration-in-ms: 120000  # 2 minutos para tests
+    cookie-name: jwt_token_test
+
+# Desactivar métricas y actuator en tests
+management:
+  endpoints:
+    enabled-by-default: false
+  endpoint:
+    health:
+      enabled: true

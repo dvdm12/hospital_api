@@ -1,93 +1,214 @@
+# Configuración por defecto (desarrollo)
 spring:
   application:
     name: ${SPRING_APP_NAME:api}
-
+  
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/db_eam?createDatabaseIfNotExist=true&serverTimezone=UTC}
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:2320183A6A5FB}
-
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect    
+        dialect: org.hibernate.dialect.MySQL8Dialect
         globally_quoted_identifiers: true
-
-  security:
-    user:
-      name: ${SPRING_SECURITY_USER_NAME:admin}
-      password: ${SPRING_SECURITY_USER_PASSWORD:admin}
+        format_sql: true
+        use_sql_comments: true
+        generate_statistics: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  # Remover spring.security.user ya que usas configuración personalizada
+  # security:
+  #   user:
+  #     name: ${SPRING_SECURITY_USER_NAME:admin}
+  #     password: ${SPRING_SECURITY_USER_PASSWORD:admin}
 
 server:
   port: ${SPRING_APP_PORT:4500}
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
 
 logging:
   level:
-    org.springframework: INFO
+    org.springframework.security: DEBUG
+    com.example.miapp: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 springdoc:
   api-docs:
     enabled: true
+    path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
     operationsSorter: method
+    tryItOutEnabled: true
+    filter: true
+  packages-to-scan: com.example.miapp.controller
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,env,beans
+        include: health,info,metrics,env,beans,loggers
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+      show-components: always
+    info:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+
+# Configuración JWT
+app:
+  jwt:
+    secret: ${JWT_SECRET:qTmcAnR2Cx36vEwVzD4BhJpLsYtFuZ7X8GkNeQaM9P5rSxWyK2L8WcVfNxPyA3mR6uD}
+    expiration-in-ms: ${JWT_EXPIRATION:3600000}     # 1 hora
+    refresh-expiration-in-ms: ${JWT_REFRESH_EXPIRATION:86400000}  # 24 horas
+    cookie-name: ${JWT_COOKIE_NAME:jwt_token}
+
 ---
+# Perfil para Docker/Producción
 spring:
   config:
     activate:
       on-profile: docker
-
+  
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
-
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      leak-detection-threshold: 60000
+  
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: validate  # Más seguro para producción
+    show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
-    show-sql: false
-
-  security:
-    user:
-      name: ${SPRING_SECURITY_USER_NAME:admin}
-      password: ${SPRING_SECURITY_USER_PASSWORD:admin}
+        globally_quoted_identifiers: true
+        format_sql: false
+        generate_statistics: false
+        jdbc:
+          batch_size: 25
 
 server:
-  port: ${SPRING_APP_PORT}
+  port: ${SPRING_APP_PORT:8080}
+  servlet:
+    context-path: /
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+
+logging:
+  level:
+    org.springframework.security: WARN
+    com.example.miapp: INFO
+    org.hibernate.SQL: WARN
+    org.springframework: WARN
+    root: INFO
+  file:
+    name: /var/log/app/application.log
+    max-size: 100MB
+    max-history: 30
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info,metrics
+      base-path: /actuator
   endpoint:
     health:
       show-details: never
+      show-components: never
+    info:
+      enabled: true
+
+# JWT para producción
+app:
+  jwt:
+    secret: ${JWT_SECRET}  # Obligatorio desde variable de entorno
+    expiration-in-ms: ${JWT_EXPIRATION:3600000}
+    refresh-expiration-in-ms: ${JWT_REFRESH_EXPIRATION:86400000}
+    cookie-name: ${JWT_COOKIE_NAME:jwt_token}
+
+---
+# Perfil para Testing
+spring:
+  config:
+    activate:
+      on-profile: test
+  
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+logging:
+  level:
+    com.example.miapp: DEBUG
+    org.springframework.test: DEBUG
 
 app:
   jwt:
-    secret: ${JWT_SECRET:qTmcAnR2Cx36vEwVzD4BhJpLsYtFuZ7X8GkNeQaM9P5rSxWyK2}
-    expirationInMs: ${JWT_EXPIRATION:86400000}
-    refreshExpirationInMs: ${JWT_REFRESH_EXPIRATION:604800000}
-    cookieName: jwt_token
+    secret: test-secret-key-for-testing-minimum-256-bits-long-string-here
+    expiration-in-ms: 60000  # 1 minuto para tests
+    refresh-expiration-in-ms: 120000  # 2 minutos para tests
+    cookie-name: jwt_token_test

@@ -3,6 +3,7 @@ package com.example.miapp.dto.auth;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+
 @Data
 public class LoginRequest {
     @NotBlank

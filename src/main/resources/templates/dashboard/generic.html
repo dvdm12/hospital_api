@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle}">Dashboard - Sistema Hospitalario</title>
+</head>
+<body>
+    <h1>🏥 Dashboard - Sistema Hospitalario</h1>
+    
+    <p><strong>Usuario:</strong> <span th:text="${username}">usuario</span></p>
+    <p><strong>Roles:</strong> <span th:text="${roles}">roles</span></p>
+    
+    <hr>
+    
+    <div style="background-color: #fff3cd; padding: 15px; border: 1px solid #ffeaa7; border-radius: 5px;">
+        <h3>⚠️ Rol No Reconocido</h3>
+        <p>Su cuenta no tiene un rol específico asignado. Contacte al administrador del sistema para obtener los permisos necesarios.</p>
+    </div>
+    
+    <hr>
+    
+    <h2>🔗 Enlaces Disponibles</h2>
+    <ul>
+        <li><a href="/home">Página de Inicio</a></li>
+        <li><a href="/about">Acerca del Sistema</a></li>
+        <li><a href="/contact">Contacto</a></li>
+    </ul>
+    
+    <hr>
+    
+    <p>
+        <a href="/auth/logout">🚪 Cerrar Sesión</a>
+    </p>
+</body>
+</html>

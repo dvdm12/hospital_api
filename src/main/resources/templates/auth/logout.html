@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Página de cierre de sesión del Sistema Hospitalario">
+    <title>Cierre de Sesión - Sistema Hospitalario</title>
+
+    <!-- Fuentes modernas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <style>
+        :root {
+            /* Paleta fría moderna */
+            --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-solid: #667eea;
+            --secondary: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --secondary-solid: #4facfe;
+            --accent: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+            
+            /* Escala de grises fría */
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            
+            /* Colores especiales */
+            --white: #ffffff;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            
+            /* Sombras modernas */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+            
+            /* Radios modernos */
+            --radius-xs: 0.25rem;
+            --radius-sm: 0.375rem;
+            --radius: 0.5rem;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
+            --radius-2xl: 2rem;
+            --radius-full: 9999px;
+            
+            /* Transiciones mínimas */
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+            color: var(--gray-100);
+        }
+
+        /* Fondo estático moderno */
+        .bg-modern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(102, 126, 234, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102, 126, 234, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .static-orbs {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.03));
+            backdrop-filter: blur(1px);
+        }
+
+        .orb:nth-child(1) { 
+            width: 200px; height: 200px; left: 10%; top: 20%; 
+        }
+        .orb:nth-child(2) { 
+            width: 150px; height: 150px; right: 15%; top: 10%; 
+        }
+        .orb:nth-child(3) { 
+            width: 100px; height: 100px; left: 60%; bottom: 20%; 
+        }
+        .orb:nth-child(4) { 
+            width: 120px; height: 120px; right: 50%; bottom: 30%; 
+        }
+
+        .logout-container {
+            width: 100%;
+            max-width: 550px;
+            padding: 2rem;
+            margin: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logout-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-2xl);
+            padding: 3rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logout-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        .logout-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--primary);
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            box-shadow: var(--shadow-glow);
+            position: relative;
+        }
+
+        .logout-icon i {
+            font-size: 2.5rem;
+            color: var(--white);
+        }
+
+        .logout-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--white), var(--primary-solid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            letter-spacing: -0.025em;
+        }
+
+        .logout-message {
+            font-size: 1rem;
+            color: var(--gray-400);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .countdown-container {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid var(--gray-700);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        .countdown-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        .countdown-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-200);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .countdown-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .countdown-timer {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--white);
+            font-family: 'JetBrains Mono', monospace;
+            text-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+        }
+
+        .countdown-label {
+            font-size: 0.875rem;
+            color: var(--gray-400);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .progress-ring {
+            width: 60px;
+            height: 60px;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            fill: none;
+            stroke: var(--gray-700);
+            stroke-width: 4;
+        }
+
+        .progress-ring-progress {
+            fill: none;
+            stroke: var(--primary-solid);
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-dasharray: 188.4;
+            stroke-dashoffset: 188.4;
+            transition: stroke-dashoffset 1s ease;
+        }
+
+        .btn-container {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn {
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: 1rem 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            position: relative;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:hover {
+            box-shadow: var(--shadow-xl), var(--shadow-glow);
+            color: var(--white);
+        }
+
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--gray-700);
+            color: var(--gray-100);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary-solid);
+            background: rgba(30, 41, 59, 0.8);
+            color: var(--white);
+        }
+
+        .security-info {
+            background: rgba(59, 130, 246, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin-top: 2rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            text-align: left;
+        }
+
+        .security-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--info);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .security-icon i {
+            font-size: 1.25rem;
+            color: var(--white);
+        }
+
+        .security-content {
+            flex: 1;
+        }
+
+        .security-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--gray-200);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .security-text {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        /* Estados de urgencia */
+        .countdown-urgent .countdown-timer {
+            color: var(--error);
+        }
+
+        .countdown-urgent .progress-ring-progress {
+            stroke: var(--error);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .logout-container {
+                padding: 1rem;
+                margin: 1rem;
+            }
+            
+            .logout-card {
+                padding: 2rem 1.5rem;
+            }
+            
+            .logout-title {
+                font-size: 1.875rem;
+            }
+            
+            .logout-message {
+                font-size: 0.875rem;
+            }
+            
+            .countdown-timer {
+                font-size: 2.5rem;
+            }
+
+            .countdown-display {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .progress-ring {
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logout-card {
+                padding: 1.5rem 1rem;
+            }
+            
+            .logout-title {
+                font-size: 1.5rem;
+            }
+            
+            .countdown-timer {
+                font-size: 2rem;
+            }
+
+            .security-info {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+        }
+
+        /* Modo claro */
+        @media (prefers-color-scheme: light) {
+            body {
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+                color: var(--gray-900);
+            }
+            
+            .logout-card {
+                background: rgba(255, 255, 255, 0.8);
+                border-color: rgba(203, 213, 225, 0.5);
+            }
+            
+            .countdown-container,
+            .btn-secondary {
+                background: rgba(248, 250, 252, 0.8);
+                border-color: var(--gray-300);
+            }
+            
+            .security-info {
+                background: rgba(59, 130, 246, 0.05);
+                border-color: rgba(59, 130, 246, 0.2);
+            }
+        }
+
+        /* Focus visible para accesibilidad */
+        .btn:focus-visible {
+            outline: 2px solid var(--primary-solid);
+            outline-offset: 2px;
+        }
+
+        /* Estados de loading */
+        .redirecting .countdown-container {
+            opacity: 0.6;
+        }
+
+        .redirecting .countdown-title::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Fondo estático -->
+    <div class="bg-modern">
+        <div class="grid-overlay"></div>
+        <div class="static-orbs">
+            <div class="orb"></div>
+            <div class="orb"></div>
+            <div class="orb"></div>
+            <div class="orb"></div>
+        </div>
+    </div>
+
+    <div class="logout-container">
+        <div class="logout-card">
+            <!-- Status indicator -->
+            <div class="status-indicator"></div>
+            
+            <!-- Success icon -->
+            <div class="logout-icon">
+                <i class="bi bi-check-lg"></i>
+            </div>
+            
+            <!-- Main message -->
+            <h1 class="logout-title">¡Sesión Cerrada Exitosamente!</h1>
+            <p class="logout-message" th:if="${logoutMessage}" th:text="${logoutMessage}">
+                Ha cerrado sesión correctamente. Gracias por utilizar el Sistema Hospitalario.
+            </p>
+            <p class="logout-message" th:unless="${logoutMessage}">
+                Ha cerrado sesión correctamente. Gracias por utilizar el Sistema Hospitalario.
+            </p>
+            
+            <!-- Countdown with progress ring -->
+            <div class="countdown-container" id="countdownContainer">
+                <div class="countdown-title">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    Redireccionando automáticamente
+                </div>
+                <div class="countdown-display">
+                    <svg class="progress-ring">
+                        <circle class="progress-ring-circle" cx="30" cy="30" r="26"></circle>
+                        <circle class="progress-ring-progress" cx="30" cy="30" r="26" id="progressCircle"></circle>
+                    </svg>
+                    <div>
+                        <div class="countdown-timer" id="countdown">10</div>
+                        <div class="countdown-label">segundos</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action buttons -->
+            <div class="btn-container">
+                <a href="/login" class="btn btn-primary" id="loginBtn">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Iniciar Sesión Ahora
+                </a>
+                <a href="/home" class="btn btn-secondary" id="homeBtn">
+                    <i class="bi bi-house-door"></i>
+                    Ir a Página Principal
+                </a>
+            </div>
+            
+            <!-- Security information -->
+            <div class="security-info">
+                <div class="security-icon">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div class="security-content">
+                    <div class="security-title">🔒 Información de Seguridad</div>
+                    <p class="security-text">
+                        Su sesión ha sido cerrada de forma segura. Todas las cookies y tokens de autenticación 
+                        han sido eliminados. Para mayor seguridad, recomendamos cerrar completamente el navegador 
+                        si está utilizando un dispositivo compartido.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let seconds = 10;
+            const countdownElement = document.getElementById('countdown');
+            const progressCircle = document.getElementById('progressCircle');
+            const countdownContainer = document.getElementById('countdownContainer');
+            const circumference = 2 * Math.PI * 26; // radius = 26
+            
+            // Initialize progress ring
+            progressCircle.style.strokeDasharray = circumference;
+            progressCircle.style.strokeDashoffset = circumference;
+            
+            let countdownInterval;
+            let isCountdownActive = true;
+            
+            function updateCountdown() {
+                if (!isCountdownActive) return;
+                
+                seconds--;
+                countdownElement.textContent = seconds;
+                
+                // Update progress ring
+                const progress = (10 - seconds) / 10;
+                const offset = circumference - (progress * circumference);
+                progressCircle.style.strokeDashoffset = offset;
+                
+                // Add urgency effects when time is running out
+                if (seconds <= 3) {
+                    countdownContainer.classList.add('countdown-urgent');
+                }
+                
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    showRedirectMessage();
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1000);
+                }
+            }
+            
+            function showRedirectMessage() {
+                document.body.classList.add('redirecting');
+                countdownContainer.innerHTML = `
+                    <div class="countdown-title">
+                        <i class="bi bi-arrow-right-circle"></i>
+                        Redirigiendo
+                    </div>
+                    <div style="font-size: 1rem; color: var(--gray-300); font-weight: 500; margin-top: 0.5rem;">
+                        Por favor espere...
+                    </div>
+                `;
+            }
+            
+            function stopCountdown() {
+                isCountdownActive = false;
+                clearInterval(countdownInterval);
+                
+                // Update UI to show manual navigation
+                countdownContainer.innerHTML = `
+                    <div class="countdown-title">
+                        <i class="bi bi-hand-index"></i>
+                        Redirección cancelada
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--gray-400); margin-top: 0.5rem;">
+                        Utilice los botones de abajo para navegar
+                    </div>
+                `;
+            }
+            
+            // Start countdown
+            countdownInterval = setInterval(updateCountdown, 1000);
+            
+            // Stop countdown when user interacts with buttons
+            document.getElementById('loginBtn').addEventListener('click', stopCountdown);
+            document.getElementById('homeBtn').addEventListener('click', stopCountdown);
+            
+            // Stop countdown on any user interaction
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.btn')) {
+                    stopCountdown();
+                }
+            });
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    stopCountdown();
+                    document.getElementById('loginBtn').focus();
+                }
+                if (e.key === 'Escape') {
+                    stopCountdown();
+                }
+            });
+            
+            // Auto focus for accessibility
+            setTimeout(() => {
+                document.getElementById('loginBtn').focus();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

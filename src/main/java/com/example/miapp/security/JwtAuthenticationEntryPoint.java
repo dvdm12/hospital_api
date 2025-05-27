@@ -24,8 +24,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
                          AuthenticationException authException) throws IOException {
         logger.error("Unauthorized error: {}", authException.getMessage());
 
+        String requestURI = request.getRequestURI();
+        
         // Para solicitudes de API, devolver JSON
-        if (request.getRequestURI().startsWith("/api/")) {
+        if (requestURI != null && requestURI.startsWith("/api/")) {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
@@ -33,12 +35,12 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
             body.put("error", "Unauthorized");
             body.put("message", authException.getMessage());
-            body.put("path", request.getRequestURI());
+            body.put("path", requestURI);
 
             final ObjectMapper mapper = new ObjectMapper();
             mapper.writeValue(response.getOutputStream(), body);
         } 
-        // Para solicitudes web, redirigir a login
+        // Para solicitudes web (incluye null y empty), redirigir a login
         else {
             response.sendRedirect("/login?error=true");
         }

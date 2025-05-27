@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acceso Seguro - Sistema Hospitalario</title>
+  
+  <!-- Fuentes modernas -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+  <style>
+    :root {
+      /* Paleta fría moderna */
+      --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --primary-solid: #667eea;
+      --secondary: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --secondary-solid: #4facfe;
+      --accent: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
+      
+      /* Escala de grises fría */
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --gray-400: #94a3b8;
+      --gray-500: #64748b;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-800: #1e293b;
+      --gray-900: #0f172a;
+      
+      /* Colores especiales */
+      --white: #ffffff;
+      --black: #000000;
+      --glass: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      
+      /* Sombras modernas */
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+      
+      /* Radios modernos */
+      --radius-xs: 0.25rem;
+      --radius-sm: 0.375rem;
+      --radius: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --radius-xl: 1.5rem;
+      --radius-2xl: 2rem;
+      --radius-full: 9999px;
+      
+      /* Transiciones mínimas */
+      --transition: all 0.2s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+      color: var(--gray-100);
+    }
+
+    /* Fondo estático moderno */
+    .bg-modern {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(102, 126, 234, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(102, 126, 234, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .static-orbs {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.03));
+      backdrop-filter: blur(1px);
+    }
+
+    .orb:nth-child(1) { 
+      width: 200px; height: 200px; left: 10%; top: 20%; 
+    }
+    .orb:nth-child(2) { 
+      width: 150px; height: 150px; right: 15%; top: 10%; 
+    }
+    .orb:nth-child(3) { 
+      width: 100px; height: 100px; left: 60%; bottom: 20%; 
+    }
+    .orb:nth-child(4) { 
+      width: 120px; height: 120px; right: 50%; bottom: 30%; 
+    }
+
+    /* Contenedor principal */
+    .login-container {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .login-card {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-2xl);
+      padding: 3rem;
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    /* Sección de marca */
+    .brand-section {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .brand-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--primary);
+      border-radius: var(--radius-xl);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .brand-icon i {
+      font-size: 2.5rem;
+      color: var(--white);
+    }
+
+    .brand-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--white), var(--primary-solid));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.025em;
+    }
+
+    .brand-subtitle {
+      color: var(--gray-400);
+      font-size: 1rem;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    /* Alertas */
+    .alert {
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.5rem;
+      margin-bottom: 2rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+
+    .alert::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+
+    .alert-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .alert-danger::before {
+      background: var(--error);
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.1);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .alert-success::before {
+      background: var(--success);
+    }
+
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: #fcd34d;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .alert-warning::before {
+      background: var(--warning);
+    }
+
+    .alert i {
+      font-size: 1.25rem;
+    }
+
+    /* Formulario */
+    .form-group {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 1rem 1rem 1rem 3rem;
+      border: 1px solid var(--gray-700);
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
+      font-weight: 500;
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(10px);
+      transition: var(--transition);
+      color: var(--gray-100);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-solid);
+      background: rgba(30, 41, 59, 0.8);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-control:valid {
+      border-color: var(--success);
+    }
+
+    .form-control::placeholder {
+      color: var(--gray-500);
+      font-weight: 400;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.125rem;
+      color: var(--gray-500);
+      transition: var(--transition);
+      z-index: 2;
+    }
+
+    .form-control:focus + .input-icon,
+    .form-control:valid + .input-icon {
+      color: var(--primary-solid);
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--gray-500);
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: var(--radius);
+      transition: var(--transition);
+      z-index: 2;
+    }
+
+    .password-toggle:hover {
+      color: var(--primary-solid);
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    .password-toggle i {
+      font-size: 1rem;
+    }
+
+    /* Botón */
+    .btn-login {
+      width: 100%;
+      padding: 1rem 2rem;
+      background: var(--primary);
+      border: none;
+      border-radius: var(--radius-lg);
+      color: var(--white);
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .btn-login:hover {
+      box-shadow: var(--shadow-xl), var(--shadow-glow);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .loading-spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid transparent;
+      border-top: 2px solid var(--white);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Enlaces */
+    .forgot-password {
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+
+    .forgot-password a {
+      color: var(--primary-solid);
+      text-decoration: none;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      transition: var(--transition);
+    }
+
+    .forgot-password a:hover {
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    /* Divisor */
+    .divider {
+      position: relative;
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gray-700), transparent);
+    }
+
+    .divider span {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 0 1.5rem;
+      color: var(--gray-400);
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Usuarios de prueba */
+    .test-users {
+      background: rgba(30, 41, 59, 0.3);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      border: 1px solid var(--gray-700);
+    }
+
+    .test-users h6 {
+      color: var(--gray-200);
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .test-users h6 i {
+      color: var(--info);
+      font-size: 1rem;
+    }
+
+    .user-credential {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      background: rgba(51, 65, 85, 0.3);
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-700);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .user-credential:hover {
+      border-color: var(--primary-solid);
+      background: rgba(51, 65, 85, 0.5);
+    }
+
+    .user-credential:last-child {
+      margin-bottom: 0;
+    }
+
+    .credential-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .credential-role {
+      font-weight: 600;
+      color: var(--gray-200);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .credential-login {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(15, 23, 42, 0.5);
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-xs);
+      display: inline-block;
+    }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--gray-500);
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: var(--radius);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .copy-btn:hover {
+      color: var(--primary-solid);
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    .copy-btn i {
+      font-size: 1rem;
+    }
+
+    /* Aviso de seguridad */
+    .security-notice {
+      background: rgba(59, 130, 246, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .security-notice i {
+      color: var(--info);
+      font-size: 1.25rem;
+      margin-top: 0.125rem;
+    }
+
+    .security-notice-text {
+      font-size: 0.8rem;
+      color: var(--gray-300);
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    /* Notificaciones toast */
+    .toast-container {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      z-index: 9999;
+    }
+
+    .toast {
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      padding: 1rem 1.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 300px;
+      border-left: 3px solid;
+      color: var(--gray-100);
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .toast.success { border-left-color: var(--success); }
+    .toast.error { border-left-color: var(--error); }
+    .toast.info { border-left-color: var(--info); }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .login-card {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+        max-width: none;
+      }
+      
+      .brand-title {
+        font-size: 1.875rem;
+      }
+      
+      .form-control {
+        padding: 0.875rem 0.875rem 0.875rem 2.75rem;
+      }
+      
+      .input-icon {
+        left: 0.875rem;
+      }
+      
+      .password-toggle {
+        right: 0.875rem;
+      }
+
+      .toast {
+        min-width: 280px;
+        margin: 0 1rem 1rem 1rem;
+      }
+
+      .toast-container {
+        right: 0;
+        left: 0;
+        top: 1rem;
+      }
+    }
+
+    /* Modo claro */
+    @media (prefers-color-scheme: light) {
+      body {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+        color: var(--gray-900);
+      }
+      
+      .login-card {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: rgba(203, 213, 225, 0.5);
+      }
+      
+      .form-control {
+        background: rgba(248, 250, 252, 0.8);
+        border-color: var(--gray-300);
+        color: var(--gray-900);
+      }
+      
+      .test-users {
+        background: rgba(248, 250, 252, 0.5);
+        border-color: var(--gray-300);
+      }
+    }
+
+    /* Estados de validación */
+    .form-control.error {
+      border-color: var(--error);
+    }
+
+    .form-control.success {
+      border-color: var(--success);
+    }
+
+    /* Efectos de hover simples */
+    .interactive:hover {
+      opacity: 0.8;
+    }
+
+    /* Focus visible para accesibilidad */
+    .form-control:focus-visible,
+    .btn-login:focus-visible,
+    .password-toggle:focus-visible {
+      outline: 2px solid var(--primary-solid);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Fondo estático -->
+  <div class="bg-modern">
+    <div class="grid-overlay"></div>
+    <div class="static-orbs">
+      <div class="orb"></div>
+      <div class="orb"></div>
+      <div class="orb"></div>
+      <div class="orb"></div>
+    </div>
+  </div>
+
+  <!-- Contenedor de notificaciones -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <!-- Sección de marca -->
+      <div class="brand-section">
+        <div class="brand-icon">
+          <i class="bi bi-hospital"></i>
+        </div>
+        <h1 class="brand-title">Sistema Hospitalario</h1>
+        <p class="brand-subtitle">Acceso seguro y moderno</p>
+      </div>
+
+      <!-- Alertas -->
+      <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span th:text="${errorMessage}"></span>
+      </div>
+      
+      <div th:if="${logoutMessage}" class="alert alert-success" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        <span th:text="${logoutMessage}"></span>
+      </div>
+      
+      <div th:if="${expiredMessage}" class="alert alert-warning" role="alert">
+        <i class="bi bi-clock-fill"></i>
+        <span th:text="${expiredMessage}"></span>
+      </div>
+
+      <!-- Formulario de login -->
+      <form th:action="@{/auth/login-process}" method="post" novalidate id="loginForm">
+        <div class="form-group">
+          <input 
+            type="text" 
+            class="form-control" 
+            id="username" 
+            name="username" 
+            placeholder="Nombre de usuario" 
+            required
+            autocomplete="username"
+            aria-label="Nombre de usuario">
+          <i class="bi bi-person-circle input-icon"></i>
+        </div>
+
+        <div class="form-group">
+          <input 
+            type="password" 
+            class="form-control" 
+            id="password" 
+            name="password" 
+            placeholder="Contraseña" 
+            required
+            autocomplete="current-password"
+            aria-label="Contraseña">
+          <i class="bi bi-shield-lock input-icon"></i>
+          <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Mostrar/ocultar contraseña">
+            <i class="bi bi-eye" id="passwordToggleIcon"></i>
+          </button>
+        </div>
+
+        <!-- Token CSRF -->
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+        <button type="submit" class="btn-login" id="loginBtn">
+          <span class="loading-spinner" id="loadingSpinner"></span>
+          <span id="loginText">Iniciar Sesión</span>
+        </button>
+      </form>
+
+      <!-- Contraseña olvidada -->
+      <div class="forgot-password">
+        <a th:href="@{/forgot-password}">
+          <i class="bi bi-key"></i>
+          ¿Olvidó su contraseña?
+        </a>
+      </div>
+
+      <!-- Divisor -->
+      <div class="divider">
+        <span>Credenciales de prueba</span>
+      </div>
+
+      <!-- Usuarios de prueba -->
+      <div class="test-users">
+        <h6>
+          <i class="bi bi-info-circle-fill"></i>
+          Demo Users
+        </h6>
+        
+        <div class="user-credential" onclick="fillCredentials('admin', 'admin123')">
+          <div class="credential-info">
+            <div class="credential-role">
+              <span>👨‍💼</span>
+              Administrador
+            </div>
+            <div class="credential-login">admin / admin123</div>
+          </div>
+          <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyCredentials('admin', 'admin123')" title="Copiar credenciales">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+        
+        <div class="user-credential" onclick="fillCredentials('doctor1', 'doctor123')">
+          <div class="credential-info">
+            <div class="credential-role">
+              <span>👨‍⚕️</span>
+              Doctor
+            </div>
+            <div class="credential-login">doctor1 / doctor123</div>
+          </div>
+          <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyCredentials('doctor1', 'doctor123')" title="Copiar credenciales">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+        
+        <div class="user-credential" onclick="fillCredentials('patient1', 'patient123')">
+          <div class="credential-info">
+            <div class="credential-role">
+              <span>🏥</span>
+              Paciente
+            </div>
+            <div class="credential-login">patient1 / patient123</div>
+          </div>
+          <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyCredentials('patient1', 'patient123')" title="Copiar credenciales">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Aviso de seguridad -->
+      <div class="security-notice">
+        <i class="bi bi-shield-check"></i>
+        <div class="security-notice-text">
+          <strong>Conexión segura:</strong> Protegido con cifrado SSL/TLS y autenticación multifactor.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Funcionalidad sin animaciones complejas
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const toggleIcon = document.getElementById('passwordToggleIcon');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.className = 'bi bi-eye-slash';
+      } else {
+        passwordInput.type = 'password';
+        toggleIcon.className = 'bi bi-eye';
+      }
+    }
+
+    function fillCredentials(username, password) {
+      document.getElementById('username').value = username;
+      document.getElementById('password').value = password;
+      
+      // Trigger validation
+      document.getElementById('username').dispatchEvent(new Event('input'));
+      document.getElementById('password').dispatchEvent(new Event('input'));
+      
+      showToast('Credenciales cargadas', 'success');
+    }
+
+    async function copyCredentials(username, password) {
+      try {
+        await navigator.clipboard.writeText(`${username} / ${password}`);
+        showToast('Copiado al portapapeles', 'success');
+      } catch (err) {
+        showToast('Error al copiar', 'error');
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const icons = {
+        success: 'bi-check-circle-fill',
+        error: 'bi-exclamation-triangle-fill',
+        info: 'bi-info-circle-fill'
+      };
+      
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <i class="bi ${icons[type]}"></i>
+        <span>${message}</span>
+      `;
+      
+      container.appendChild(toast);
+      
+      // Show toast
+      setTimeout(() => toast.classList.add('show'), 10);
+      
+      // Auto remove
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
+    }
+
+    // Funcionalidad básica
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('loginForm');
+      const inputs = form.querySelectorAll('input[required]');
+      
+      // Validación simple
+      inputs.forEach(input => {
+        input.addEventListener('input', function() {
+          if (this.value.trim()) {
+            this.classList.remove('error');
+            this.classList.add('success');
+          } else {
+            this.classList.remove('success');
+          }
+        });
+      });
+
+      // Envío del formulario
+      form.addEventListener('submit', function(e) {
+        const loginBtn = document.getElementById('loginBtn');
+        const loginText = document.getElementById('loginText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        
+        // Validar
+        let isValid = true;
+        inputs.forEach(input => {
+          if (!input.value.trim()) {
+            input.classList.add('error');
+            isValid = false;
+          }
+        });
+        
+        if (!isValid) {
+          e.preventDefault();
+          showToast('Complete todos los campos', 'error');
+          return;
+        }
+        
+        // Estado de carga
+        loginBtn.disabled = true;
+        loginText.textContent = 'Verificando...';
+        loadingSpinner.style.display = 'inline-block';
+      });
+
+      // Auto-focus
+      document.getElementById('username').focus();
+    });
+  </script>
+</body>
+</html>

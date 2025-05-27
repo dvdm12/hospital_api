@@ -172,18 +172,29 @@ class AuthServiceTest {
     }
 
     @Test
-    void getUserInfoFromAuth_ReturnsUserInfo() {
-        // Ejecutar
-        Map<String, Object> userInfo = authService.getUserInfoFromAuth(authentication);
+void getUserInfoFromAuth_ReturnsUserInfo() {
+    // Ejecutar
+    Map<String, Object> userInfo = authService.getUserInfoFromAuth(authentication);
+    
+    // Verificar
+    assertNotNull(userInfo);
+    assertEquals(1L, userInfo.get("id"));
+    assertEquals("testuser", userInfo.get("username"));
+    assertEquals("test@example.com", userInfo.get("email"));
+    
+    // Usar método helper
+    List<String> roles = getListFromMap(userInfo, "roles", String.class);
+    assertEquals(1, roles.size());
+    assertEquals("ROLE_PATIENT", roles.get(0));
+}
 
-        // Verificar
-        assertNotNull(userInfo);
-        assertEquals(1L, userInfo.get("id"));
-        assertEquals("testuser", userInfo.get("username"));
-        assertEquals("test@example.com", userInfo.get("email"));
-        assertTrue(userInfo.get("roles") instanceof List);
-        List<String> roles = (List<String>) userInfo.get("roles");
-        assertEquals(1, roles.size());
-        assertEquals("ROLE_PATIENT", roles.get(0));
+// Método helper para casting seguro
+@SuppressWarnings("unchecked")
+private <T> List<T> getListFromMap(Map<String, Object> map, String key, Class<T> type) {
+    Object value = map.get(key);
+    if (value instanceof List) {
+        return (List<T>) value;
     }
+    throw new ClassCastException("Value is not a List: " + value);
+}
 }

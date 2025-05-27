@@ -1,6 +1,5 @@
 services:
 
-  # 1) Base de datos MySQL
   db:
     image: mysql:8.0.22
     container_name: mysql_eam
@@ -23,7 +22,6 @@ services:
     networks:
       - eam_apps
 
-  # 2) Aplicación Spring Boot
   app:
     build:
       context: .
@@ -35,15 +33,15 @@ services:
       - .env
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
-    ports:
-      - "${SPRING_APP_PORT}:${SPRING_APP_PORT}"
+    # No expongas el puerto hacia fuera, solo interno
+    # ports:
+    #   - "${SPRING_APP_PORT}:${SPRING_APP_PORT}"
     depends_on:
       db:
         condition: service_healthy
     networks:
       - eam_apps
 
-  # 3) Grafana para visualización
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -54,8 +52,9 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
-    ports:
-      - "3000:3000"
+    # No expongas el puerto hacia fuera, solo interno
+    # ports:
+    #   - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
@@ -64,27 +63,41 @@ services:
     networks:
       - eam_apps
 
-  # 4) Adminer para gestión de BD
   adminer:
     image: adminer:latest
     container_name: adminer
     restart: always
     env_file:
       - .env
-    ports:
-      - "8080:8080"
+    # No expongas el puerto hacia fuera, solo interno
+    # ports:
+    #   - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
     networks:
       - eam_apps
 
-# Red compartida
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+      # - "443:443"  # Si quieres SSL más adelante
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+      - grafana
+      - adminer
+    networks:
+      - eam_apps
+
 networks:
   eam_apps:
     driver: bridge
 
-# Volúmenes para persistencia
 volumes:
   mysql_data:
     name: mysql_eam_data
