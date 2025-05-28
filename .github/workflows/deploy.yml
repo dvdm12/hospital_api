@@ -20,7 +20,7 @@ jobs:
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
           GIT_REPO: ${{ secrets.GIT_REPO }}
 
-          # Secrets del archivo .env
+          # Variables de entorno del .env
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
@@ -44,8 +44,29 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$HOST_NAME" >> ~/.ssh/known_hosts
 
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" << 'EOF'
+          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" bash -s <<'EOF'
             set -e
+
+            export PROJECT_PATH="${PROJECT_PATH}"
+            export GIT_REPO="${GIT_REPO}"
+
+            # Variables de entorno
+            export MYSQL_PORT="${MYSQL_PORT}"
+            export MYSQL_DATABASE="${MYSQL_DATABASE}"
+            export MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}"
+            export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}"
+            export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}"
+            export SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}"
+            export SPRING_APP_NAME="${SPRING_APP_NAME}"
+            export SPRING_APP_PORT="${SPRING_APP_PORT}"
+            export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE}"
+            export SPRING_SECURITY_USER_NAME="${SPRING_SECURITY_USER_NAME}"
+            export SPRING_SECURITY_USER_PASSWORD="${SPRING_SECURITY_USER_PASSWORD}"
+            export JWT_SECRET="${JWT_SECRET}"
+            export JWT_EXPIRATION="${JWT_EXPIRATION}"
+            export JWT_REFRESH_EXPIRATION="${JWT_REFRESH_EXPIRATION}"
+            export JWT_COOKIE_NAME="${JWT_COOKIE_NAME}"
+            export SWAGGER_ENABLED="${SWAGGER_ENABLED}"
 
             if [ ! -d "$PROJECT_PATH/.git" ]; then
               mkdir -p "$(dirname $PROJECT_PATH)"
