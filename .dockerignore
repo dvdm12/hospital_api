@@ -1,7 +1,9 @@
+# Archivos y carpetas de IDE/editor
 .vscode/
 .idea/
 *.iml
 
+# Archivos temporales del sistema/editores
 *.log
 *.tmp
 *.swp
@@ -9,10 +11,24 @@
 *.DS_Store
 Thumbs.db
 
-**/test/
-**/test-classes/
+# Archivos de tests (fuente y compilados)
+src/test/
+target/test-classes/
+target/surefire-reports/
+target/generated-test-sources/
 
+# Salida de compilación (siempre excluye todo target/)
 target/
 !target/*.jar
 
+# Carpeta de assets/documentación
 assets/
+
+# Informes y cobertura
+site/
+jacoco.exec
+
+# Configuración de entorno local
+.env
+.env.*
+*.local

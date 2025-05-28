@@ -12,7 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <style>
-        /* ... (mismo CSS que antes) ... */
         :root {
             --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --primary-solid: #667eea;
@@ -182,7 +181,7 @@
 
         .stats-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -191,7 +190,7 @@
             background: rgba(30, 41, 59, 0.5);
             backdrop-filter: blur(10px);
             border: 1px solid var(--gray-700);
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: var(--radius-xl);
             text-align: center;
             box-shadow: var(--shadow-lg);
@@ -209,17 +208,12 @@
             height: 3px;
         }
 
-        .stat-card:nth-child(1)::before {
-            background: var(--primary);
-        }
-
-        .stat-card:nth-child(2)::before {
-            background: var(--secondary);
-        }
-
-        .stat-card:nth-child(3)::before {
-            background: var(--accent);
-        }
+        .stat-card:nth-child(1)::before { background: var(--primary); }
+        .stat-card:nth-child(2)::before { background: var(--secondary); }
+        .stat-card:nth-child(3)::before { background: var(--accent); }
+        .stat-card:nth-child(4)::before { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+        .stat-card:nth-child(5)::before { background: linear-gradient(135deg, #26de81, #20bf6b); }
+        .stat-card:nth-child(6)::before { background: linear-gradient(135deg, #fd79a8, #e84393); }
 
         .stat-card:hover {
             border-color: var(--primary-solid);
@@ -227,7 +221,7 @@
         }
 
         .stat-number {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 800;
             margin-bottom: 0.5rem;
             color: var(--white);
@@ -235,7 +229,7 @@
         }
 
         .stat-label {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             color: var(--gray-400);
             font-weight: 500;
             text-transform: uppercase;
@@ -244,7 +238,7 @@
 
         .charts-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 2rem;
             margin-top: 1rem;
         }
@@ -256,6 +250,10 @@
             padding: 1.5rem;
             border: 1px solid var(--gray-700);
             transition: var(--transition);
+        }
+
+        .chart-card.large {
+            grid-column: span 2;
         }
 
         .chart-card:hover {
@@ -276,6 +274,14 @@
         .chart-container {
             position: relative;
             height: 300px;
+        }
+
+        .chart-container.small {
+            height: 250px;
+        }
+
+        .chart-container.large {
+            height: 400px;
         }
 
         .quick-links {
@@ -366,12 +372,16 @@
                 gap: 1.5rem;
             }
 
+            .chart-card.large {
+                grid-column: span 1;
+            }
+
             .quick-links {
                 grid-template-columns: 1fr;
             }
 
             .stats-cards {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             }
         }
 
@@ -381,7 +391,7 @@
             }
 
             .stat-number {
-                font-size: 2rem;
+                font-size: 1.5rem;
             }
         }
     </style>
@@ -408,6 +418,7 @@
             <section class="stats-section">
                 <h2>📊 Estadísticas del Sistema</h2>
                 
+                <!-- Tarjetas de estadísticas -->
                 <div class="stats-cards">
                     <div class="stat-card">
                         <div class="stat-number" th:text="${totalUsers}">0</div>
@@ -421,10 +432,23 @@
                         <div class="stat-number" th:text="${totalPatients}">0</div>
                         <div class="stat-label">👤 Pacientes</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-number">248</div>
+                        <div class="stat-label">📅 Citas Totales</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">156</div>
+                        <div class="stat-label">✅ Citas Activas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">92</div>
+                        <div class="stat-label">✔️ Completadas</div>
+                    </div>
                 </div>
 
+                <!-- Contenedor de gráficas simplificado -->
                 <div class="charts-container">
-                    <!-- Solo gráficas con datos reales -->
+                    <!-- Gráficas con datos reales -->
                     <div class="chart-card">
                         <h3>📊 Distribución de Usuarios</h3>
                         <div class="chart-container">
@@ -439,18 +463,61 @@
                         </div>
                     </div>
 
-                    <!-- Gráficas condicionales - solo si hay datos -->
-                    <div class="chart-card" th:if="${monthlyData != null}">
-                        <h3>📈 Registros Mensuales</h3>
-                        <div class="chart-container">
-                            <canvas id="monthlyChart"></canvas>
+                    <!-- Gráficas con datos simulados -->
+                    <div class="chart-card">
+                        <h3>📋 Estado de Citas</h3>
+                        <div class="chart-container small">
+                            <canvas id="appointmentStatusChart"></canvas>
                         </div>
                     </div>
 
-                    <div class="chart-card" th:if="${departmentStats != null}">
-                        <h3>🏥 Por Departamento</h3>
+                    <div class="chart-card">
+                        <h3>📈 Actividad Semanal</h3>
                         <div class="chart-container">
-                            <canvas id="departmentChart"></canvas>
+                            <canvas id="weeklyActivityChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>🩺 Especialidades Médicas</h3>
+                        <div class="chart-container">
+                            <canvas id="specialtiesChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>👥 Distribución por Edad</h3>
+                        <div class="chart-container">
+                            <canvas id="ageDistributionChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>🔍 Diagnósticos Frecuentes</h3>
+                        <div class="chart-container">
+                            <canvas id="diagnosisChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>⭐ Satisfacción del Servicio</h3>
+                        <div class="chart-container small">
+                            <canvas id="satisfactionChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>🕐 Horarios Más Ocupados</h3>
+                        <div class="chart-container">
+                            <canvas id="busyHoursChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Gráfica grande de rendimiento -->
+                    <div class="chart-card large">
+                        <h3>📊 Rendimiento Mensual del Sistema</h3>
+                        <div class="chart-container large">
+                            <canvas id="monthlyPerformanceChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -462,14 +529,17 @@
                     <a href="/admin/users" class="quick-link">
                         👥 Gestionar Usuarios
                     </a>
-                    <a href="/doctors" class="quick-link">
+                    <a href="admin/register-doctor" class="quick-link">
                         👨‍⚕️ Gestionar Doctores
                     </a>
                     <a href="/patients" class="quick-link">
                         👤 Gestionar Pacientes
                     </a>
-                    <a href="/register" class="quick-link">
-                        ➕ Registrar Usuario
+                    <a href="/appointments" class="quick-link">
+                        📅 Gestionar Citas
+                    </a>
+                    <a href="/reports" class="quick-link">
+                        📊 Reportes
                     </a>
                 </div>
                 
@@ -484,24 +554,26 @@
     </div>
 
     <script th:inline="javascript">
-        // ✅ DATOS REALES del modelo
-        const users = /*[[${totalUsers}]]*/ 0;
-        const doctors = /*[[${totalDoctors}]]*/ 0;
-        const patients = /*[[${totalPatients}]]*/ 0;
+        // Datos reales del modelo - SOLO PARA USUARIOS
+        const users = /*[[${totalUsers}]]*/ 50;
+        const doctors = /*[[${totalDoctors}]]*/ 15;
+        const patients = /*[[${totalPatients}]]*/ 120;
 
-        // ✅ DATOS OPCIONALES (solo si existen en el modelo)
-        const monthlyData = /*[[${monthlyData}]]*/ null;
-        const departmentStats = /*[[${departmentStats}]]*/ null;
-
-        // Paleta de colores moderna
+        // Paleta de colores
         const colors = {
             primary: '#ff6b6b',
             secondary: '#4ecdc4', 
             tertiary: '#45b7d1',
-            quaternary: '#96ceb4'
+            success: '#26de81',
+            warning: '#feca57',
+            error: '#ff6b6b',
+            info: '#54a0ff',
+            purple: '#5f27cd',
+            teal: '#00d2d3',
+            violet: '#a55eea'
         };
 
-        // Configuración común para tooltips
+        // Configuración común
         const tooltipConfig = {
             backgroundColor: 'rgba(15, 23, 42, 0.95)',
             titleColor: '#f1f5f9',
@@ -512,144 +584,356 @@
             displayColors: true
         };
 
-        // 1. ✅ Gráfico de distribución (DATOS REALES)
-        new Chart(document.getElementById('userDistributionChart').getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: ['Usuarios Total', 'Doctores', 'Pacientes'],
-                datasets: [{
-                    data: [users, doctors, patients],
-                    backgroundColor: [colors.primary, colors.secondary, colors.tertiary],
-                    borderColor: [colors.primary, colors.secondary, colors.tertiary],
-                    borderWidth: 2,
-                    borderRadius: 12
-                }]
+        const scaleConfig = {
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(102, 126, 234, 0.1)' },
+                ticks: { color: '#94a3b8' }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: tooltipConfig
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(102, 126, 234, 0.1)' },
-                        ticks: { color: '#94a3b8' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8' }
-                    }
-                }
+            x: {
+                grid: { display: false },
+                ticks: { color: '#94a3b8' }
             }
-        });
+        };
 
-        // 2. ✅ Gráfico de porcentajes (DATOS REALES)
-        const total = users + doctors + patients;
-        if (total > 0) {
-            new Chart(document.getElementById('percentageChart').getContext('2d'), {
-                type: 'doughnut',
+        // Función para crear gráficas de forma segura
+        function createChart(id, config) {
+            try {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    new Chart(canvas.getContext('2d'), config);
+                } else {
+                    console.warn(`Canvas con ID ${id} no encontrado`);
+                }
+            } catch (error) {
+                console.error(`Error creando gráfica ${id}:`, error);
+            }
+        }
+
+        // Esperar a que el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. Gráfico de distribución (DATOS REALES)
+            createChart('userDistributionChart', {
+                type: 'bar',
                 data: {
-                    labels: ['Usuarios', 'Doctores', 'Pacientes'],
+                    labels: ['Usuarios Total', 'Doctores', 'Pacientes'],
                     datasets: [{
                         data: [users, doctors, patients],
                         backgroundColor: [colors.primary, colors.secondary, colors.tertiary],
-                        borderColor: 'rgba(15, 23, 42, 0.8)',
-                        borderWidth: 3
+                        borderColor: [colors.primary, colors.secondary, colors.tertiary],
+                        borderWidth: 2,
+                        borderRadius: 12
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '65%',
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: '#94a3b8', font: { size: 12 } }
-                        },
-                        tooltip: {
-                            ...tooltipConfig,
-                            callbacks: {
-                                label: function(context) {
-                                    const percentage = ((context.parsed * 100) / total).toFixed(1);
-                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        legend: { display: false },
+                        tooltip: tooltipConfig
+                    },
+                    scales: scaleConfig
+                }
+            });
+
+            // 2. Gráfico de porcentajes (DATOS REALES)
+            const total = users + doctors + patients;
+            if (total > 0) {
+                createChart('percentageChart', {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Usuarios', 'Doctores', 'Pacientes'],
+                        datasets: [{
+                            data: [users, doctors, patients],
+                            backgroundColor: [colors.primary, colors.secondary, colors.tertiary],
+                            borderColor: 'rgba(15, 23, 42, 0.8)',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '65%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#94a3b8', font: { size: 12 } }
+                            },
+                            tooltip: {
+                                ...tooltipConfig,
+                                callbacks: {
+                                    label: function(context) {
+                                        const percentage = ((context.parsed * 100) / total).toFixed(1);
+                                        return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
-        }
+                });
+            }
 
-        // 3. ⚠️ Gráfico mensual (SOLO SI HAY DATOS)
-        if (monthlyData && monthlyData.length > 0) {
-            new Chart(document.getElementById('monthlyChart').getContext('2d'), {
-                type: 'line',
+            // 3. Estado de citas
+            createChart('appointmentStatusChart', {
+                type: 'pie',
                 data: {
-                    labels: monthlyData.map(item => item.month),
+                    labels: ['Pendientes', 'Confirmadas', 'Completadas', 'Canceladas'],
                     datasets: [{
-                        label: 'Nuevos Registros',
-                        data: monthlyData.map(item => item.count),
-                        borderColor: colors.quaternary,
-                        backgroundColor: colors.quaternary + '20',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4
+                        data: [85, 71, 92, 24],
+                        backgroundColor: [colors.warning, colors.info, colors.success, colors.error],
+                        borderColor: 'rgba(15, 23, 42, 0.8)',
+                        borderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { labels: { color: '#94a3b8' } },
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } },
+                        tooltip: tooltipConfig
+                    }
+                }
+            });
+
+            // 4. Actividad semanal
+            createChart('weeklyActivityChart', {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                    datasets: [
+                        {
+                            label: 'Citas',
+                            data: [25, 32, 28, 35, 30, 15, 8],
+                            borderColor: colors.primary,
+                            backgroundColor: colors.primary + '20',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Registros',
+                            data: [8, 12, 6, 15, 10, 4, 2],
+                            borderColor: colors.secondary,
+                            backgroundColor: colors.secondary + '20',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8' }, position: 'top' },
+                        tooltip: tooltipConfig
+                    },
+                    scales: scaleConfig
+                }
+            });
+
+            // 5. Especialidades médicas
+            createChart('specialtiesChart', {
+                type: 'radar',
+                data: {
+                    labels: ['Cardiología', 'Neurología', 'Pediatría', 'Ginecología', 'Traumatología', 'Medicina General'],
+                    datasets: [{
+                        label: 'Doctores por Especialidad',
+                        data: [12, 9, 15, 8, 11, 18],
+                        backgroundColor: colors.tertiary + '30',
+                        borderColor: colors.tertiary,
+                        borderWidth: 2,
+                        pointBackgroundColor: colors.tertiary,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8' }, position: 'bottom' },
                         tooltip: tooltipConfig
                     },
                     scales: {
-                        y: {
+                        r: {
                             beginAtZero: true,
                             grid: { color: 'rgba(102, 126, 234, 0.1)' },
-                            ticks: { color: '#94a3b8' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#94a3b8' }
+                            pointLabels: { color: '#94a3b8', font: { size: 11 } },
+                            ticks: { color: '#94a3b8', display: false }
                         }
                     }
                 }
             });
-        }
 
-        // 4. ⚠️ Gráfico por departamento (SOLO SI HAY DATOS)
-        if (departmentStats && departmentStats.length > 0) {
-            new Chart(document.getElementById('departmentChart').getContext('2d'), {
-                type: 'polarArea',
+            // 6. Distribución por edad
+            createChart('ageDistributionChart', {
+                type: 'bar',
                 data: {
-                    labels: departmentStats.map(dept => dept.name),
+                    labels: ['0-18', '19-30', '31-45', '46-60', '60+'],
                     datasets: [{
-                        data: departmentStats.map(dept => dept.count),
+                        label: 'Pacientes por Edad',
+                        data: [45, 78, 92, 63, 32],
                         backgroundColor: [
-                            colors.primary + '80',
-                            colors.secondary + '80', 
-                            colors.tertiary + '80',
-                            colors.quaternary + '80'
-                        ]
+                            colors.success + '80',
+                            colors.info + '80',
+                            colors.warning + '80',
+                            colors.purple + '80',
+                            colors.error + '80'
+                        ],
+                        borderColor: [
+                            colors.success,
+                            colors.info,
+                            colors.warning,
+                            colors.purple,
+                            colors.error
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 8
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: tooltipConfig },
+                    scales: scaleConfig
+                }
+            });
+
+            // 7. Diagnósticos frecuentes
+            createChart('diagnosisChart', {
+                type: 'bar',
+                data: {
+                    labels: ['Hipertensión', 'Diabetes', 'Infección Resp.', 'Dolor Lumbar', 'Migraña', 'Ansiedad'],
+                    datasets: [{
+                        data: [42, 38, 65, 47, 29, 33],
+                        backgroundColor: colors.violet + '70',
+                        borderColor: colors.violet,
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: tooltipConfig },
+                    scales: scaleConfig
+                }
+            });
+
+            // 8. Satisfacción del servicio
+            createChart('satisfactionChart', {
+                type: 'doughnut',
+                data: {
+                    labels: ['⭐', '⭐⭐', '⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐⭐⭐'],
+                    datasets: [{
+                        data: [2, 5, 15, 45, 78],
+                        backgroundColor: [
+                            colors.error + '80',
+                            colors.warning + '80',
+                            colors.info + '80',
+                            colors.secondary + '80',
+                            colors.success + '80'
+                        ],
+                        borderColor: 'rgba(15, 23, 42, 0.8)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '50%',
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: '#94a3b8', font: { size: 11 } }
-                        },
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } },
                         tooltip: tooltipConfig
                     }
                 }
             });
-        }
+
+            // 9. Horarios más ocupados
+            createChart('busyHoursChart', {
+                type: 'bar',
+                data: {
+                    labels: ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'],
+                    datasets: [{
+                        label: 'Citas por Hora',
+                        data: [12, 18, 25, 22, 8, 15, 28, 24],
+                        backgroundColor: colors.teal + '60',
+                        borderColor: colors.teal,
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: tooltipConfig },
+                    scales: scaleConfig
+                }
+            });
+
+            // 10. Rendimiento mensual (gráfica grande)
+            createChart('monthlyPerformanceChart', {
+                type: 'line',
+                data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+                    datasets: [
+                        {
+                            label: 'Citas Mensuales',
+                            data: [120, 135, 150, 145, 160, 155],
+                            borderColor: colors.primary,
+                            backgroundColor: colors.primary + '20',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Ingresos (x100)',
+                            data: [150, 180, 220, 200, 250, 230],
+                            borderColor: colors.success,
+                            backgroundColor: colors.success + '20',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Satisfacción (x30)',
+                            data: [126, 129, 123, 132, 135, 129],
+                            borderColor: colors.warning,
+                            backgroundColor: colors.warning + '20',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8' }, position: 'top' },
+                        tooltip: {
+                            ...tooltipConfig,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label === 'Ingresos (x100)') {
+                                        return `Ingresos: $${(context.parsed.y * 100).toLocaleString()}`;
+                                    } else if (label === 'Satisfacción (x30)') {
+                                        return `Satisfacción: ${(context.parsed.y / 30).toFixed(1)}/5`;
+                                    }
+                                    return `${label}: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: scaleConfig
+                }
+            });
+
+        });
     </script>
 </body>
 </html>

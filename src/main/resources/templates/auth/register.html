@@ -1,384 +1,448 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Usuario - Sistema Hospitalario</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.2rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        .form-container {
-            padding: 40px;
-        }
-
-        .alert {
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .alert-error {
-            background: linear-gradient(135deg, #ffebee, #ffcdd2);
-            color: #c62828;
-            border-left: 4px solid #f44336;
-        }
-
-        .alert-success {
-            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
-            color: #2e7d32;
-            border-left: 4px solid #4caf50;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 1rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #fafafa;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #4CAF50;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
-        }
-
-        .form-control::placeholder {
-            color: #999;
-        }
-
-        .select-control {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
-            font-size: 1rem;
-            background: #fafafa;
-            transition: all 0.3s ease;
-        }
-
-        .select-control:focus {
-            outline: none;
-            border-color: #4CAF50;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
-        }
-
-        .error-message {
-            color: #f44336;
-            font-size: 0.875rem;
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .help-text {
-            color: #666;
-            font-size: 0.875rem;
-            margin-top: 5px;
-            font-style: italic;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .info-section {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-radius: 15px;
-            padding: 25px;
-            margin-top: 30px;
-            border-left: 4px solid #4CAF50;
-        }
-
-        .info-section h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-        }
-
-        .info-section ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .info-section li {
-            padding: 8px 0;
-            border-bottom: 1px solid #dee2e6;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .info-section li:last-child {
-            border-bottom: none;
-        }
-
-        .role-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-        }
-
-        .admin-icon { background: #ff9800; }
-        .doctor-icon { background: #2196f3; }
-        .patient-icon { background: #9c27b0; }
-
-        .navigation {
-            background: #f8f9fa;
-            padding: 20px 40px;
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .nav-link {
-            color: #4CAF50;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 8px 15px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-link:hover {
-            background: #4CAF50;
-            color: white;
-            transform: translateY(-1px);
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                border-radius: 15px;
-            }
-            
-            .form-container {
-                padding: 25px;
-            }
-            
-            .header {
-                padding: 25px;
-            }
-            
-            .header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .navigation {
-                padding: 15px 25px;
-                flex-direction: column;
-                text-align: center;
-            }
-        }
-    </style>
+    <meta name="description" content="Registro de nuevos usuarios en el Sistema Hospitalario">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 </head>
+
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🏥 Sistema Hospitalario</h1>
-            <p>Registrar Nuevo Usuario</p>
-        </div>
-        
-        <div class="form-container">
-            <!-- Mensajes de estado -->
-            <div th:if="${errorMessage}" class="alert alert-error">
-                <span>⚠️</span>
-                <div>
-                    <strong>Error:</strong> <span th:text="${errorMessage}">Error message</span>
+        <div class="registration-card">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-icon">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+                <h1>Sistema Hospitalario</h1>
+                <p>Registrar Nuevo Usuario</p>
+            </div>
+            
+            <div class="form-container">
+                <!-- Mensajes de estado -->
+                <div th:if="${errorMessage}" class="alert alert-error">
+                    <div class="alert-icon">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <strong>Error:</strong> <span th:text="${errorMessage}">Error message</span>
+                    </div>
+                </div>
+                
+                <div th:if="${successMessage}" class="alert alert-success">
+                    <div class="alert-icon">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <strong>Éxito:</strong> <span th:text="${successMessage}">Success message</span>
+                    </div>
+                </div>
+                
+                <!-- Formulario de registro -->
+                <form th:action="@{/auth/register-web}" method="post" th:object="${signupRequest}" id="registrationForm">
+                    
+                    <!-- Campos de usuario base - siempre visibles -->
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="bi bi-person"></i>
+                            Nombre de Usuario <span style="color: red;">*</span>
+                        </label>
+                        <input type="text" id="username" th:field="*{username}" 
+                               class="form-control" placeholder="Ingrese nombre de usuario" required>
+                        <div th:if="${#fields.hasErrors('username')}" class="error-message">
+                            <div class="error-icon">
+                                <i class="bi bi-x"></i>
+                            </div>
+                            <span th:errors="*{username}">Username error</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="bi bi-envelope"></i>
+                            Correo Electrónico <span style="color: red;">*</span>
+                        </label>
+                        <input type="email" id="email" th:field="*{email}" 
+                               class="form-control" placeholder="usuario@ejemplo.com" required>
+                        <div th:if="${#fields.hasErrors('email')}" class="error-message">
+                            <div class="error-icon">
+                                <i class="bi bi-x"></i>
+                            </div>
+                            <span th:errors="*{email}">Email error</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="bi bi-lock"></i>
+                            Contraseña <span style="color: red;">*</span>
+                        </label>
+                        <input type="password" id="password" th:field="*{password}" 
+                               class="form-control" placeholder="Mínimo 6 caracteres" required>
+                        <div th:if="${#fields.hasErrors('password')}" class="error-message">
+                            <div class="error-icon">
+                                <i class="bi bi-x"></i>
+                            </div>
+                            <span th:errors="*{password}">Password error</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="role">
+                            <i class="bi bi-people"></i>
+                            Roles del Usuario <span style="color: red;">*</span>
+                        </label>
+                        <select th:field="*{role}" multiple size="3" class="select-control" id="role" required>
+                            <option value="admin">👨‍💼 Administrador</option>
+                            <option value="doctor">👨‍⚕️ Doctor</option>
+                            <option value="patient" selected>👤 Paciente</option>
+                        </select>
+                        <div th:if="${#fields.hasErrors('role')}" class="error-message">
+                            <div class="error-icon">
+                                <i class="bi bi-x"></i>
+                            </div>
+                            <span th:errors="*{role}">Role error</span>
+                        </div>
+                        <div class="help-text">
+                            <i class="bi bi-info-circle"></i>
+                            Mantén presionado Ctrl (Cmd en Mac) para seleccionar múltiples roles
+                        </div>
+                    </div>
+                    
+                    <!-- Campos comunes para Doctor y Paciente -->
+                    <div id="commonFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="firstName">
+                                <i class="bi bi-person"></i>
+                                Nombre <span style="color: red;">*</span>
+                            </label>
+                            <input type="text" id="firstName" name="firstName" 
+                                   class="form-control" placeholder="Ingrese nombre">
+                            <div class="error-message" id="firstNameError" style="display: none;">
+                                <div class="error-icon">
+                                    <i class="bi bi-x"></i>
+                                </div>
+                                <span>El nombre es requerido</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="lastName">
+                                <i class="bi bi-person"></i>
+                                Apellido <span style="color: red;">*</span>
+                            </label>
+                            <input type="text" id="lastName" name="lastName" 
+                                   class="form-control" placeholder="Ingrese apellido">
+                            <div class="error-message" id="lastNameError" style="display: none;">
+                                <div class="error-icon">
+                                    <i class="bi bi-x"></i>
+                                </div>
+                                <span>El apellido es requerido</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">
+                                <i class="bi bi-telephone"></i>
+                                Teléfono <span style="color: red;">*</span>
+                            </label>
+                            <input type="tel" id="phone" name="phone" 
+                                   class="form-control" placeholder="Ej: +123456789">
+                            <div class="error-message" id="phoneError" style="display: none;">
+                                <div class="error-icon">
+                                    <i class="bi bi-x"></i>
+                                </div>
+                                <span>El teléfono es requerido</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos específicos para Doctor -->
+                    <div id="doctorFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="licenseNumber">
+                                <i class="bi bi-card-text"></i>
+                                Número de Licencia <span style="color: red;">*</span>
+                            </label>
+                            <input type="text" id="licenseNumber" name="licenseNumber" 
+                                   class="form-control" placeholder="Ingrese número de licencia médica">
+                            <div class="error-message" id="licenseNumberError" style="display: none;">
+                                <div class="error-icon">
+                                    <i class="bi bi-x"></i>
+                                </div>
+                                <span>El número de licencia es requerido</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos específicos para Paciente -->
+                    <div id="patientFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="birthDate">
+                                <i class="bi bi-calendar"></i>
+                                Fecha de Nacimiento <span style="color: red;">*</span>
+                            </label>
+                            <input type="date" id="birthDate" name="birthDate" 
+                                   class="form-control" max="2025-05-27">
+                            <div class="error-message" id="birthDateError" style="display: none;">
+                                <div class="error-icon">
+                                    <i class="bi bi-x"></i>
+                                </div>
+                                <span>La fecha de nacimiento es requerida</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="address">
+                                <i class="bi bi-house"></i>
+                                Dirección <span style="color: red;">*</span>
+                            </label>
+                            <input type="text" id="address" name="address" 
+                                   class="form-control" placeholder="Ingrese dirección completa">
+                            <div class="error-message" id="addressError" style="display: none;">
+                                <div class="error-icon">
+                                    <i class="bi bi-x"></i>
+                                </div>
+                                <span>La dirección es requerida</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Token CSRF -->
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    
+                    <button type="submit" class="btn" id="submitBtn">
+                        <i class="bi bi-person-plus"></i>
+                        Registrar Usuario
+                    </button>
+                </form>
+                
+                <!-- Información sobre roles -->
+                <div class="info-section">
+                    <h3 class="info-title">
+                        <i class="bi bi-info-circle"></i>
+                        Información sobre Roles
+                    </h3>
+                    <ul class="roles-list">
+                        <li class="role-item">
+                            <div class="role-icon admin-icon">
+                                <i class="bi bi-gear"></i>
+                            </div>
+                            <div class="role-content">
+                                <div class="role-title">Administrador</div>
+                                <div class="role-description">
+                                    Acceso completo al sistema, gestión de usuarios y configuración avanzada
+                                </div>
+                            </div>
+                        </li>
+                        <li class="role-item">
+                            <div class="role-icon doctor-icon">
+                                <i class="bi bi-heart-pulse"></i>
+                            </div>
+                            <div class="role-content">
+                                <div class="role-title">Doctor</div>
+                                <div class="role-description">
+                                    Gestión de pacientes, citas médicas, prescripciones y historiales clínicos
+                                </div>
+                            </div>
+                        </li>
+                        <li class="role-item">
+                            <div class="role-icon patient-icon">
+                                <i class="bi bi-person-heart"></i>
+                            </div>
+                            <div class="role-content">
+                                <div class="role-title">Paciente</div>
+                                <div class="role-description">
+                                    Acceso a portal personal, historial médico, citas y resultados de estudios
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
             </div>
             
-            <div th:if="${successMessage}" class="alert alert-success">
-                <span>✅</span>
-                <div>
-                    <strong>Éxito:</strong> <span th:text="${successMessage}">Success message</span>
-                </div>
+            <!-- Navigation -->
+            <div class="navigation">
+                <a href="/admin" class="nav-link">
+                    <i class="bi bi-arrow-left"></i>
+                    Panel de Administración
+                </a>
+                <a href="/auth/logout" class="nav-link">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
             </div>
-            
-            <!-- Formulario de registro -->
-            <form th:action="@{/auth/register-web}" method="post" th:object="${signupRequest}">
-                
-                <div class="form-group">
-                    <label for="username">👤 Nombre de Usuario</label>
-                    <input type="text" id="username" th:field="*{username}" 
-                           class="form-control" placeholder="Ingrese nombre de usuario" required>
-                    <div th:if="${#fields.hasErrors('username')}" class="error-message">
-                        <span>❌</span>
-                        <span th:errors="*{username}">Username error</span>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="email">📧 Correo Electrónico</label>
-                    <input type="email" id="email" th:field="*{email}" 
-                           class="form-control" placeholder="usuario@ejemplo.com" required>
-                    <div th:if="${#fields.hasErrors('email')}" class="error-message">
-                        <span>❌</span>
-                        <span th:errors="*{email}">Email error</span>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">🔒 Contraseña</label>
-                    <input type="password" id="password" th:field="*{password}" 
-                           class="form-control" placeholder="Mínimo 6 caracteres" required>
-                    <div th:if="${#fields.hasErrors('password')}" class="error-message">
-                        <span>❌</span>
-                        <span th:errors="*{password}">Password error</span>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="role">👥 Roles del Usuario</label>
-                    <select th:field="*{role}" multiple size="3" class="select-control">
-                        <option value="admin">👨‍💼 Administrador</option>
-                        <option value="doctor">👨‍⚕️ Doctor</option>
-                        <option value="patient" selected>👤 Paciente</option>
-                    </select>
-                    <div th:if="${#fields.hasErrors('role')}" class="error-message">
-                        <span>❌</span>
-                        <span th:errors="*{role}">Role error</span>
-                    </div>
-                    <div class="help-text">
-                        💡 Mantén presionado Ctrl (Cmd en Mac) para seleccionar múltiples roles
-                    </div>
-                </div>
-                
-                <!-- Token CSRF -->
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                
-                <button type="submit" class="btn">
-                    <span>✨</span>
-                    Registrar Usuario
-                </button>
-            </form>
-            
-            <div class="info-section">
-                <h3>ℹ️ Información sobre Roles</h3>
-                <ul>
-                    <li>
-                        <div class="role-icon admin-icon">👨‍💼</div>
-                        <div>
-                            <strong>Administrador:</strong> Acceso completo al sistema, gestión de usuarios y configuración
-                        </div>
-                    </li>
-                    <li>
-                        <div class="role-icon doctor-icon">👨‍⚕️</div>
-                        <div>
-                            <strong>Doctor:</strong> Gestión de pacientes, citas médicas y prescripciones
-                        </div>
-                    </li>
-                    <li>
-                        <div class="role-icon patient-icon">👤</div>
-                        <div>
-                            <strong>Paciente:</strong> Acceso a portal personal, historial médico y citas
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        
-        <div class="navigation">
-            <a href="/admin" class="nav-link">
-                <span>⬅️</span>
-                Panel de Administración
-            </a>
-            <a href="/auth/logout" class="nav-link">
-                <span>🚪</span>
-                Cerrar Sesión
-            </a>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('registrationForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const roleSelect = document.getElementById('role');
+            const commonFields = document.getElementById('commonFields');
+            const doctorFields = document.getElementById('doctorFields');
+            const patientFields = document.getElementById('patientFields');
+            
+            // Establecer fecha máxima para birthDate (hoy)
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('birthDate').setAttribute('max', today);
+            
+            // Handle role selection changes
+            roleSelect.addEventListener('change', function() {
+                const selectedRoles = Array.from(this.selectedOptions).map(option => option.value);
+                updateFieldVisibility(selectedRoles);
+            });
+            
+            function updateFieldVisibility(selectedRoles) {
+                const hasDoctor = selectedRoles.includes('doctor');
+                const hasPatient = selectedRoles.includes('patient');
+                const hasAdmin = selectedRoles.includes('admin');
+                
+                // Reset validation state
+                clearValidationErrors();
+                
+                // Show/hide fields based on selected roles
+                if (hasDoctor || hasPatient) {
+                    commonFields.style.display = 'block';
+                    
+                    if (hasDoctor) {
+                        doctorFields.style.display = 'block';
+                    } else {
+                        doctorFields.style.display = 'none';
+                    }
+                    
+                    if (hasPatient) {
+                        patientFields.style.display = 'block';
+                    } else {
+                        patientFields.style.display = 'none';
+                    }
+                } else {
+                    // If only admin role is selected, hide all additional fields
+                    commonFields.style.display = 'none';
+                    doctorFields.style.display = 'none';
+                    patientFields.style.display = 'none';
+                }
+            }
+            
+            function clearValidationErrors() {
+                const errorElements = document.querySelectorAll('.error-message');
+                errorElements.forEach(el => {
+                    el.style.display = 'none';
+                });
+                
+                const inputElements = form.querySelectorAll('input');
+                inputElements.forEach(el => {
+                    el.style.borderColor = '';
+                });
+            }
+            
+            // Input validation
+            form.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.style.borderColor = '';
+                    const errorElement = document.getElementById(this.id + 'Error');
+                    if (errorElement) {
+                        errorElement.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Form validation
+            form.addEventListener('submit', function(e) {
+                const selectedRoles = Array.from(roleSelect.selectedOptions).map(option => option.value);
+                
+                if (selectedRoles.length === 0) {
+                    e.preventDefault();
+                    roleSelect.style.borderColor = 'red';
+                    return;
+                }
+                
+                // Validate common fields if doctor or patient role is selected
+                if (selectedRoles.includes('doctor') || selectedRoles.includes('patient')) {
+                    let isValid = true;
+                    
+                    // Common fields for both doctor and patient
+                    if (!document.getElementById('firstName').value.trim()) {
+                        document.getElementById('firstName').style.borderColor = 'red';
+                        document.getElementById('firstNameError').style.display = 'block';
+                        isValid = false;
+                    }
+                    
+                    if (!document.getElementById('lastName').value.trim()) {
+                        document.getElementById('lastName').style.borderColor = 'red';
+                        document.getElementById('lastNameError').style.display = 'block';
+                        isValid = false;
+                    }
+                    
+                    if (!document.getElementById('phone').value.trim()) {
+                        document.getElementById('phone').style.borderColor = 'red';
+                        document.getElementById('phoneError').style.display = 'block';
+                        isValid = false;
+                    }
+                    
+                    // Fields specific to doctor
+                    if (selectedRoles.includes('doctor')) {
+                        if (!document.getElementById('licenseNumber').value.trim()) {
+                            document.getElementById('licenseNumber').style.borderColor = 'red';
+                            document.getElementById('licenseNumberError').style.display = 'block';
+                            isValid = false;
+                        }
+                    }
+                    
+                    // Fields specific to patient
+                    if (selectedRoles.includes('patient')) {
+                        if (!document.getElementById('birthDate').value) {
+                            document.getElementById('birthDate').style.borderColor = 'red';
+                            document.getElementById('birthDateError').style.display = 'block';
+                            isValid = false;
+                        }
+                        
+                        if (!document.getElementById('address').value.trim()) {
+                            document.getElementById('address').style.borderColor = 'red';
+                            document.getElementById('addressError').style.display = 'block';
+                            isValid = false;
+                        }
+                    }
+                    
+                    if (!isValid) {
+                        e.preventDefault();
+                        return;
+                    }
+                }
+                
+                // Asegurarse de formatear correctamente la fecha antes de enviar
+                const birthDateInput = document.getElementById('birthDate');
+                if (birthDateInput && birthDateInput.value) {
+                    // Asegurarse de que la fecha esté en formato MM/dd/yyyy para Java
+                    const dateParts = birthDateInput.value.split('-');
+                    if (dateParts.length === 3) {
+                        // No cambiar el formato aquí, ya que eso podría causar problemas
+                        // El backend debería manejar el formato ISO yyyy-MM-dd
+                    }
+                }
+                
+                // Si todo está bien, deshabilitar el botón y mostrar indicador de carga
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Procesando...';
+                
+                // Re-enable button after 5 seconds as fallback
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Registrar Usuario';
+                }, 5000);
+            });
+            
+            // Initialize with default selection
+            const initialRoles = Array.from(roleSelect.selectedOptions).map(option => option.value);
+            if (initialRoles.length > 0) {
+                updateFieldVisibility(initialRoles);
+            }
+        });
+    </script>
 </body>
 </html>

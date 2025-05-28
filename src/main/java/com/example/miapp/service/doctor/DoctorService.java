@@ -30,6 +30,7 @@ public interface DoctorService {
     DoctorDto getDoctor(Long doctorId);
     Doctor findDoctorById(Long doctorId); // For internal service use
     Optional<DoctorDto> findDoctorByEmail(String email);
+    Optional<DoctorDto> findDoctorByUserId(Long userId); // Método añadido para buscar por userId
     Page<DoctorDto> searchDoctorsByName(String namePattern, Pageable pageable);
     Page<DoctorDto> findDoctorsBySpecialty(Long specialtyId, Pageable pageable);
     Page<DoctorDto> findAvailableDoctors(DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime, Pageable pageable);

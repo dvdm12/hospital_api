@@ -4,8 +4,11 @@ import com.example.miapp.service.dashboard.DashboardBusinessService;
 import com.example.miapp.service.doctor.DoctorService;
 import com.example.miapp.service.patient.PatientService;
 import com.example.miapp.repository.UserRepository;
+import com.example.miapp.entity.User;
+import com.example.miapp.dto.doctor.DoctorDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
@@ -15,10 +18,12 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * Controlador principal del dashboard del sistema hospitalario
  * Conectado con servicios reales para mostrar datos de la base de datos
+ * Versión final ajustada para asegurar la redirección correcta de doctores
  */
 @Controller
 @RequiredArgsConstructor
@@ -126,7 +131,7 @@ public class DashboardController {
                     totalUsers, totalDoctors, totalPatients);
             
         } catch (Exception e) {
-            log.error("Error al cargar dashboard de administrador: {}", e.getMessage());
+            log.error("Error al cargar dashboard de administrador: {}", e.getMessage(), e);
             
             // Valores por defecto en caso de error
             model.addAttribute("username", username);
@@ -135,7 +140,7 @@ public class DashboardController {
             model.addAttribute("totalUsers", 0);
             model.addAttribute("totalDoctors", 0);
             model.addAttribute("totalPatients", 0);
-            model.addAttribute("errorMessage", "Error al cargar estadísticas del sistema");
+            model.addAttribute("errorMessage", "Error al cargar estadísticas del sistema: " + e.getMessage());
         }
         
         return "dashboard/admin";
@@ -144,6 +149,7 @@ public class DashboardController {
     /**
      * Portal del doctor - CON DATOS REALES
      * GET /doctor-portal
+     * Implementación final con estrategia robusta de búsqueda
      */
     @GetMapping("/doctor-portal") 
     public String doctorPortal(Authentication authentication, Model model) {
@@ -152,43 +158,95 @@ public class DashboardController {
         log.info("Doctor {} accediendo al portal médico", username);
 
         try {
-            // Buscar el doctor por username
-            var doctorOpt = doctorService.findDoctorByEmail(username + "@hospital.com");
+            // Estrategia de búsqueda mejorada para encontrar al doctor
+            Optional<DoctorDto> doctorOpt = Optional.empty();
+            Optional<User> userOpt = Optional.empty();
             
-            if (doctorOpt.isEmpty()) {
-                // Buscar por username directo si no encuentra por email
-                var userOpt = userRepository.findByUsername(username);
-                if (userOpt.isPresent()) {
-                    // Intentar obtener datos generales del dashboard
-                    var dashboardData = dashboardService.getRealTimeStats();
-                    
-                    model.addAttribute("username", username);
-                    model.addAttribute("pageTitle", "Portal del Doctor");
-                    model.addAttribute("userRole", "Doctor");
-                    model.addAttribute("todayAppointments", dashboardData.getTodayAppointments());
-                    model.addAttribute("pendingAppointments", dashboardData.getPendingAppointments());
-                    model.addAttribute("completedToday", 0);
-                    model.addAttribute("nextAppointment", "No hay citas programadas");
-                } else {
-                    throw new RuntimeException("Usuario no encontrado");
+            // Paso 1: Intentar encontrar primero al usuario por username
+            userOpt = userRepository.findByUsername(username);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                Long userId = user.getId();
+                log.info("Usuario encontrado con ID: {}, intentando buscar perfil de doctor", userId);
+                
+                // Paso 2: Buscar doctor por userId
+                doctorOpt = doctorService.findDoctorByUserId(userId);
+                if (doctorOpt.isPresent()) {
+                    log.info("Doctor encontrado por userId: {}", userId);
                 }
+            }
+            
+            // Paso 3: Si no se encontró por userId, intentar por email
+            if (doctorOpt.isEmpty()) {
+                // Si el username parece un email, buscar directamente
+                if (username.contains("@")) {
+                    doctorOpt = doctorService.findDoctorByEmail(username);
+                    log.info("Intentando buscar doctor por email directo: {}", username);
+                } 
+                // Si no es un email, probar con formatos comunes
+                else {
+                    String[] emailDomains = {"@hospital.com", "@example.com", "@clinic.org", "@medical.net"};
+                    for (String domain : emailDomains) {
+                        String testEmail = username + domain;
+                        log.info("Intentando buscar doctor con email construido: {}", testEmail);
+                        doctorOpt = doctorService.findDoctorByEmail(testEmail);
+                        if (doctorOpt.isPresent()) {
+                            log.info("Doctor encontrado con email: {}", testEmail);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Paso 4: Procesar resultados según lo encontrado
+            if (doctorOpt.isEmpty()) {
+                // Si aún no encontramos al doctor, usamos datos generales
+                log.warn("No se encontró información del doctor para el usuario: {}", username);
+                var dashboardData = dashboardService.getRealTimeStats();
+                
+                // Datos básicos del usuario para la vista
+                String displayName = userOpt.isPresent() ? userOpt.get().getUsername() : username;
+                
+                model.addAttribute("username", displayName);
+                model.addAttribute("pageTitle", "Portal del Doctor");
+                model.addAttribute("userRole", "Doctor");
+                model.addAttribute("todayAppointments", dashboardData.getTodayAppointments());
+                model.addAttribute("pendingAppointments", dashboardData.getPendingAppointments());
+                model.addAttribute("completedToday", 0);
+                model.addAttribute("nextAppointment", "No hay citas programadas");
+                model.addAttribute("warningMessage", "No se encontró información completa para su perfil de doctor");
             } else {
+                // Si encontramos al doctor, usamos sus datos específicos
                 var doctor = doctorOpt.get();
+                log.info("Doctor encontrado: {} {} (ID: {})", doctor.getFirstName(), doctor.getLastName(), doctor.getId());
                 
                 // Obtener dashboard específico del doctor
                 var doctorDashboard = dashboardService.getDoctorDashboard(doctor.getId(), LocalDate.now());
                 
+                // Información básica
                 model.addAttribute("username", doctor.getFirstName() + " " + doctor.getLastName());
-                model.addAttribute("pageTitle", "Portal del Doctor");
+                model.addAttribute("pageTitle", "Portal del Doctor " + doctor.getFirstName() + " " + doctor.getLastName());
                 model.addAttribute("userRole", "Doctor");
+                
+                // Estadísticas de citas
                 model.addAttribute("todayAppointments", doctorDashboard.getTotalAppointments());
                 model.addAttribute("pendingAppointments", doctorDashboard.getTotalAppointments() - doctorDashboard.getCompletedAppointments());
                 model.addAttribute("completedToday", doctorDashboard.getCompletedAppointments());
-                model.addAttribute("nextAppointment", "Cargando próxima cita...");
+                model.addAttribute("nextAppointment", "Próxima cita disponible en su agenda");
+                
+                // Datos adicionales para el portal del doctor
+                model.addAttribute("doctorId", doctor.getId());
+                model.addAttribute("doctorEmail", doctor.getEmail());
+                model.addAttribute("doctorSpecialties", doctor.getSpecialties());
+                model.addAttribute("consultationFee", doctor.getConsultationFee());
+                model.addAttribute("successMessage", "Bienvenido a su portal, Dr. " + doctor.getLastName());
             }
             
+            // Log explícito para confirmar el uso de la plantilla correcta
+            log.info("Renderizando vista de portal de doctor para usuario: {}", username);
+            
         } catch (Exception e) {
-            log.error("Error al cargar portal del doctor: {}", e.getMessage());
+            log.error("Error al cargar portal del doctor: {}", e.getMessage(), e);
             
             // Valores por defecto en caso de error
             model.addAttribute("username", username);
@@ -198,79 +256,14 @@ public class DashboardController {
             model.addAttribute("pendingAppointments", 0);
             model.addAttribute("completedToday", 0);
             model.addAttribute("nextAppointment", "Error al cargar citas");
-            model.addAttribute("errorMessage", "Error al cargar datos del doctor");
+            model.addAttribute("errorMessage", "Error al cargar datos del doctor: " + e.getMessage());
         }
         
+        // Especificar explícitamente la vista a usar - asegúrate de que existe en src/main/resources/templates/dashboard/doctor.html
         return "dashboard/doctor";
     }
 
-    /**
-     * Portal del paciente - CON DATOS REALES
-     * GET /portal
-     */
-    @GetMapping("/portal")
-    public String patientPortal(Authentication authentication, Model model) {
-        
-        String username = authentication.getName();
-        log.info("Paciente {} accediendo al portal del paciente", username);
 
-        try {
-            // Buscar el paciente por email
-            var patientOpt = patientService.findPatientByEmail(username + "@example.com");
-            
-            if (patientOpt.isEmpty()) {
-                // Buscar por username directo si no encuentra por email
-                var userOpt = userRepository.findByUsername(username);
-                if (userOpt.isPresent()) {
-                    model.addAttribute("username", username);
-                    model.addAttribute("pageTitle", "Mi Portal");
-                    model.addAttribute("userRole", "Paciente");
-                    model.addAttribute("nextAppointment", "No hay citas programadas");
-                    model.addAttribute("lastVisit", "Sin visitas registradas");
-                    model.addAttribute("activePrescriptions", 0);
-                    model.addAttribute("pendingResults", 0);
-                } else {
-                    throw new RuntimeException("Usuario no encontrado");
-                }
-            } else {
-                var patient = patientOpt.get();
-                
-                // Obtener dashboard específico del paciente
-                var patientDashboard = dashboardService.getPatientDashboard(patient.getId());
-                
-                model.addAttribute("username", patient.getFirstName() + " " + patient.getLastName());
-                model.addAttribute("pageTitle", "Mi Portal");
-                model.addAttribute("userRole", "Paciente");
-                
-                // Datos específicos del paciente desde la base de datos
-                if (patientDashboard.getUpcomingAppointments() != null && !patientDashboard.getUpcomingAppointments().isEmpty()) {
-                    model.addAttribute("nextAppointment", "Próxima cita programada");
-                } else {
-                    model.addAttribute("nextAppointment", "No hay citas programadas");
-                }
-                
-                model.addAttribute("lastVisit", "Consultando última visita...");
-                model.addAttribute("activePrescriptions", patientDashboard.getActivePrescriptions() != null ? 
-                    patientDashboard.getActivePrescriptions().size() : 0);
-                model.addAttribute("pendingResults", 0);
-            }
-            
-        } catch (Exception e) {
-            log.error("Error al cargar portal del paciente: {}", e.getMessage());
-            
-            // Valores por defecto en caso de error
-            model.addAttribute("username", username);
-            model.addAttribute("pageTitle", "Mi Portal");
-            model.addAttribute("userRole", "Paciente");
-            model.addAttribute("nextAppointment", "Error al cargar citas");
-            model.addAttribute("lastVisit", "Error al cargar historial");
-            model.addAttribute("activePrescriptions", 0);
-            model.addAttribute("pendingResults", 0);
-            model.addAttribute("errorMessage", "Error al cargar datos del paciente");
-        }
-        
-        return "dashboard/patient";
-    }
 
     /**
      * Página de bienvenida/inicio público

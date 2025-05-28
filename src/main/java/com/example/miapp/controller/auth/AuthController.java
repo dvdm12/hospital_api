@@ -1,7 +1,15 @@
 package com.example.miapp.controller.auth;
 
 import com.example.miapp.dto.auth.SignupRequest;
+import com.example.miapp.dto.doctor.CreateDoctorRequest;
+import com.example.miapp.dto.doctor.DoctorDto;
+import com.example.miapp.dto.patient.CreatePatientRequest;
+import com.example.miapp.entity.User;
+import com.example.miapp.exception.DoctorValidationException;
+import com.example.miapp.repository.SpecialtyRepository;
 import com.example.miapp.service.auth.AuthService;
+import com.example.miapp.service.doctor.DoctorBusinessService;
+import com.example.miapp.service.patient.PatientBusinessService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -19,8 +28,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * Controlador de autenticación completo para vistas web (Thymeleaf)
- * 100% integrado con AuthService - Maneja login, registro, cambio de contraseña y recuperación
+ * Controlador de autenticación para vistas web (Thymeleaf)
+ * Maneja login, registro de doctores y funciones de administración
+ * Actualizado para manejar las excepciones de validación de doctores
  */
 @Controller
 @RequiredArgsConstructor
@@ -28,8 +38,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class AuthController {
 
     private final AuthService authService;
-
-    // ========== PÁGINAS DE AUTENTICACIÓN ==========
+    private final DoctorBusinessService doctorService;
+    private final SpecialtyRepository specialtyRepository;
 
     /**
      * Página de login con manejo completo de estados
@@ -71,478 +81,206 @@ public class AuthController {
         return "auth/login";
     }
 
+    /**
+     * Página de logout
+     * GET /auth/logout
+     */
     @GetMapping("/auth/logout")
     public String logoutPage() {
         return "auth/logout";
     }
 
     /**
-     * Página de registro - accesible sin autenticación
-     * GET /auth/register
+     * Página de administración de usuarios (solo admin)
+     * GET /admin/users
      */
-    @GetMapping("/auth/register")
-    public String showRegisterPage(Model model) {
-        log.info("Accediendo a página pública de registro");
-        
-        // Si no existe un objeto signupRequest en el modelo, crear uno nuevo
-        if (!model.containsAttribute("signupRequest")) {
-            model.addAttribute("signupRequest", new SignupRequest());
-        }
-        
-        model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-        
-        return "auth/register";
-    }
-
-    /**
-     * Página de registro (solo para administradores)
-     * GET /register
-     */
-    @GetMapping("/register")
+    @GetMapping("/admin/users")
     @PreAuthorize("hasRole('ADMIN')")
-    public String registerPage(Model model, Authentication authentication) {
-        log.info("Administrador {} accediendo a página de registro", authentication.getName());
+    public String userManagementPage(Model model, Authentication authentication) {
+        log.info("Administrador {} accediendo a gestión de usuarios", authentication.getName());
         
-        model.addAttribute("signupRequest", new SignupRequest());
-        model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
         model.addAttribute("adminUser", authentication.getName());
+        model.addAttribute("pageTitle", "Administración de Usuarios");
         
-        return "auth/register";
+        return "admin/users";
     }
-
-    /**
-     * Procesar registro de usuario (accesible sin autenticación)
-     * POST /auth/register
-     */
-    @PostMapping("/auth/register")
-    public String processRegistration(@Valid @ModelAttribute SignupRequest signupRequest,
-                                    BindingResult result,
-                                    RedirectAttributes redirectAttributes,
-                                    Model model) {
-        
-        log.info("Procesando registro público de usuario: {}", signupRequest.getUsername());
-        
-        // Si hay errores de validación, volver al formulario
-        if (result.hasErrors()) {
-            log.warn("Errores de validación en registro público: {}", result.getAllErrors());
-            
-            model.addAttribute("signupRequest", signupRequest);
-            model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-            
-            return "register";
-        }
-        
-        try {
-            // Validaciones adicionales de negocio
-            if (authService.existsByUsername(signupRequest.getUsername())) {
-                model.addAttribute("errorMessage", 
-                    "El nombre de usuario '" + signupRequest.getUsername() + "' ya está en uso");
-                model.addAttribute("signupRequest", signupRequest);
-                model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-                return "register";
-            }
-
-            if (authService.existsByEmail(signupRequest.getEmail())) {
-                model.addAttribute("errorMessage", 
-                    "El email '" + signupRequest.getEmail() + "' ya está registrado");
-                model.addAttribute("signupRequest", signupRequest);
-                model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-                return "register";
-            }
-            
-            // Por defecto, asignar solo rol de paciente para registro público
-            Set<String> roles = new HashSet<>();
-            roles.add("patient");
-            
-            // Procesar registro usando AuthService
-            var newUser = authService.registerUser(
-                signupRequest.getUsername(),
-                signupRequest.getEmail(),
-                signupRequest.getPassword(),
-                roles
-            );
-            
-            log.info("Usuario {} registrado exitosamente con ID: {}", 
-                    signupRequest.getUsername(), newUser.getId());
-            
-            // Mensaje de éxito
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Su cuenta ha sido creada exitosamente. Ahora puede iniciar sesión.");
-            
-            return "redirect:/login?success=true";
-            
-        } catch (RuntimeException e) {
-            log.error("Error al registrar usuario {}: {}", 
-                    signupRequest.getUsername(), e.getMessage());
-            
-            // Manejo de errores específicos con mensajes amigables
-            String errorMessage = switch (e.getMessage()) {
-                case "El nombre de usuario ya existe" -> 
-                    "El nombre de usuario '" + signupRequest.getUsername() + "' ya está en uso";
-                case "El email ya está en uso" -> 
-                    "El email '" + signupRequest.getEmail() + "' ya está registrado";
-                case "Error: Role PATIENT not found." ->
-                    "Error en la configuración de roles del sistema. Contacte al administrador técnico";
-                default -> "Error al registrar el usuario: " + e.getMessage();
-            };
-            
-            model.addAttribute("errorMessage", errorMessage);
-            model.addAttribute("signupRequest", signupRequest);
-            model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-            
-            return "register";
-        }
-    }
-
-    /**
-     * Procesar registro de usuario (solo administradores)
-     * POST /auth/register-web
-     */
-    @PostMapping("/auth/register-web")
-    @PreAuthorize("hasRole('ADMIN')")
-    public String processWebRegistration(@Valid @ModelAttribute SignupRequest signupRequest,
-                                       BindingResult result,
-                                       RedirectAttributes redirectAttributes,
-                                       Model model,
-                                       Authentication authentication) {
-        
-        log.info("Administrador {} procesando registro de usuario: {}", 
-                authentication.getName(), signupRequest.getUsername());
-        
-        // Si hay errores de validación, volver al formulario
-        if (result.hasErrors()) {
-            log.warn("Errores de validación en registro por admin {}: {}", 
-                    authentication.getName(), result.getAllErrors());
-            
-            model.addAttribute("signupRequest", signupRequest);
-            model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-            model.addAttribute("adminUser", authentication.getName());
-            
-            return "auth/register";
-        }
-        
-        try {
-            // Validaciones adicionales de negocio
-            if (authService.existsByUsername(signupRequest.getUsername())) {
-                model.addAttribute("errorMessage", 
-                    "El nombre de usuario '" + signupRequest.getUsername() + "' ya está en uso");
-                model.addAttribute("signupRequest", signupRequest);
-                model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-                model.addAttribute("adminUser", authentication.getName());
-                return "auth/register";
-            }
-
-            if (authService.existsByEmail(signupRequest.getEmail())) {
-                model.addAttribute("errorMessage", 
-                    "El email '" + signupRequest.getEmail() + "' ya está registrado");
-                model.addAttribute("signupRequest", signupRequest);
-                model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-                model.addAttribute("adminUser", authentication.getName());
-                return "auth/register";
-            }
-            
-            // Procesar registro usando AuthService
-            var newUser = authService.registerUser(
-                signupRequest.getUsername(),
-                signupRequest.getEmail(),
-                signupRequest.getPassword(),
-                signupRequest.getRole()
-            );
-            
-            log.info("Usuario {} registrado exitosamente por admin {} con ID: {}", 
-                    signupRequest.getUsername(), authentication.getName(), newUser.getId());
-            
-            // Mensaje de éxito
-            redirectAttributes.addFlashAttribute("successMessage", 
-                String.format("Usuario '%s' registrado exitosamente con roles: %s", 
-                    signupRequest.getUsername(), 
-                    signupRequest.getRole() != null ? signupRequest.getRole() : "[PATIENT]"));
-            
-            return "redirect:/admin/users";
-            
-        } catch (RuntimeException e) {
-            log.error("Error al registrar usuario {} por admin {}: {}", 
-                    signupRequest.getUsername(), authentication.getName(), e.getMessage());
-            
-            // Manejo de errores específicos con mensajes amigables
-            String errorMessage = switch (e.getMessage()) {
-                case "El nombre de usuario ya existe" -> 
-                    "El nombre de usuario '" + signupRequest.getUsername() + "' ya está en uso";
-                case "El email ya está en uso" -> 
-                    "El email '" + signupRequest.getEmail() + "' ya está registrado";
-                case "Error: Role ADMIN not found.", "Error: Role DOCTOR not found.", "Error: Role PATIENT not found." ->
-                    "Error en la configuración de roles del sistema. Contacte al administrador técnico";
-                default -> "Error al registrar el usuario: " + e.getMessage();
-            };
-            
-            model.addAttribute("errorMessage", errorMessage);
-            model.addAttribute("signupRequest", signupRequest);
-            model.addAttribute("pageTitle", "Registrar Nuevo Usuario");
-            model.addAttribute("adminUser", authentication.getName());
-            
-            return "auth/register";
-        }
-    }
-
-    // ========== GESTIÓN DE CONTRASEÑAS ==========
-
-    /**
-     * Página de cambio de contraseña
-     * GET /change-password
-     */
-    @GetMapping("/change-password")
     
-    public String changePasswordPage(@RequestParam(required = false) String firstLogin,
-                                   @RequestParam(required = false) String forced,
-                                   Model model,
-                                   Authentication authentication) {
-        
-        log.info("Usuario {} accediendo a página de cambio de contraseña", authentication.getName());
-        
-        // Verificar si es primer login
-        boolean isFirstLogin = authService.isFirstLogin(authentication.getName());
-        
-        if (firstLogin != null || isFirstLogin) {
-            model.addAttribute("firstLoginMessage", 
-                "Bienvenido al sistema. Por seguridad, debe cambiar su contraseña inicial");
-            model.addAttribute("isFirstLogin", true);
-        }
-
-        if (forced != null) {
-            model.addAttribute("forcedMessage", 
-                "El administrador requiere que cambie su contraseña antes de continuar");
-        }
-        
-        model.addAttribute("pageTitle", "Cambiar Contraseña");
-        model.addAttribute("username", authentication.getName());
-        
-        return "change-password";
-    }
-
     /**
-     * Procesar cambio de contraseña - INTEGRADO CON AUTHSERVICE
-     * POST /auth/change-password
+     * Página de registro de doctor (solo admin)
+     * GET /admin/register-doctor y GET /admin/register/doctor (para compatibilidad)
      */
-    @PostMapping("/auth/change-password")
-    public String processPasswordChange(@RequestParam String currentPassword,
-                                      @RequestParam String newPassword,
-                                      @RequestParam String confirmPassword,
-                                      RedirectAttributes redirectAttributes,
-                                      Model model,
-                                      Authentication authentication) {
+    @GetMapping({"/admin/register-doctor", "/admin/register/doctor"})
+    @PreAuthorize("hasRole('ADMIN')")
+    public String adminDoctorRegisterPage(Model model, Authentication authentication) {
+        log.info("Administrador {} accediendo a registro de doctor", authentication.getName());
         
-        String username = authentication.getName();
-        log.info("Procesando cambio de contraseña para usuario: {}", username);
-        
-        // Validaciones del lado servidor
-        if (currentPassword == null || currentPassword.trim().isEmpty()) {
-            model.addAttribute("errorMessage", "La contraseña actual es requerida");
-            return "change-password";
-        }
-
-        if (newPassword == null || newPassword.length() < 6) {
-            model.addAttribute("errorMessage", "La nueva contraseña debe tener al menos 6 caracteres");
-            return "change-password";
+        if (!model.containsAttribute("doctorRequest")) {
+            CreateDoctorRequest doctorRequest = new CreateDoctorRequest();
+            // Pre-configurar valores por defecto
+            doctorRequest.setConsultationFee(0.0);
+            doctorRequest.setLicenseNumber("POR ASIGNAR-" + System.currentTimeMillis());
+            model.addAttribute("doctorRequest", doctorRequest);
         }
         
-        if (!newPassword.equals(confirmPassword)) {
-            model.addAttribute("errorMessage", "Las contraseñas nuevas no coinciden");
-            return "change-password";
-        }
-
-        if (currentPassword.equals(newPassword)) {
-            model.addAttribute("errorMessage", "La nueva contraseña debe ser diferente a la actual");
-            return "change-password";
+        model.addAttribute("adminUser", authentication.getName());
+        model.addAttribute("pageTitle", "Registrar Nuevo Doctor");
+        
+        // Cargar especialidades desde la base de datos
+        model.addAttribute("specialties", specialtyRepository.findAll());
+        log.info("Cargadas {} especialidades para el formulario de registro de doctor", 
+                specialtyRepository.count());
+        
+        return "admin/register-doctor";
+    }
+    
+    /**
+     * Procesar registro de doctor (solo admin)
+     * POST /admin/register-doctor y POST /admin/register/doctor (para compatibilidad)
+     * Versión mejorada con mejor manejo de excepciones y validación
+     */
+    @PostMapping({"/admin/register-doctor", "/admin/register/doctor"})
+    @PreAuthorize("hasRole('ADMIN')")
+    public String processAdminDoctorRegistration(@Valid @ModelAttribute("doctorRequest") CreateDoctorRequest doctorRequest,
+                                         BindingResult result,
+                                         RedirectAttributes redirectAttributes,
+                                         Model model,
+                                         Authentication authentication,
+                                         HttpServletRequest request) {
+        
+        log.info("Administrador {} registrando doctor: {} - IP: {}", 
+                authentication.getName(), doctorRequest.getUsername(), getClientIpAddress(request));
+        
+        // Si hay errores de validación de bean, volver al formulario
+        if (result.hasErrors()) {
+            log.warn("Errores de validación en registro de doctor por admin: {}", result.getAllErrors());
+            
+            model.addAttribute("doctorRequest", doctorRequest);
+            model.addAttribute("adminUser", authentication.getName());
+            model.addAttribute("specialties", specialtyRepository.findAll());
+            model.addAttribute("errorMessage", "Por favor corrija los errores en el formulario");
+            
+            return "admin/register-doctor";
         }
         
         try {
-            // Usar AuthService real para cambiar contraseña
-            authService.changePassword(username, currentPassword, newPassword);
-            
-            log.info("Contraseña cambiada exitosamente para usuario: {}", username);
-            
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Contraseña cambiada exitosamente. Su sesión seguirá activa.");
-            
-            // Redirigir según si era primer login o no
-            boolean wasFirstLogin = authService.isFirstLogin(username);
-            if (wasFirstLogin) {
-                return "redirect:/dashboard?welcome=true";
-            } else {
-                return "redirect:/dashboard";
+            // Asegurar que haya al menos una especialidad seleccionada
+            if (doctorRequest.getSpecialtyIds() == null || doctorRequest.getSpecialtyIds().isEmpty()) {
+                // Si no hay especialidades en la base de datos, no podemos asignar una por defecto
+                if (specialtyRepository.count() == 0) {
+                    model.addAttribute("errorMessage", 
+                        "No hay especialidades disponibles en el sistema. Por favor, cree algunas primero.");
+                    model.addAttribute("adminUser", authentication.getName());
+                    model.addAttribute("specialties", specialtyRepository.findAll());
+                    return "admin/register-doctor";
+                }
+                
+                // Intenta asignar la primera especialidad disponible
+                specialtyRepository.findAll().stream().findFirst().ifPresent(specialty -> {
+                    Set<Long> defaultSpecialtyIds = new HashSet<>();
+                    defaultSpecialtyIds.add(specialty.getId());
+                    doctorRequest.setSpecialtyIds(defaultSpecialtyIds);
+                    
+                    log.info("Asignando especialidad por defecto (ID: {}) para doctor: {}", 
+                            specialty.getId(), doctorRequest.getUsername());
+                });
             }
             
-        } catch (RuntimeException e) {
-            log.error("Error al cambiar contraseña para usuario {}: {}", username, e.getMessage());
+            // Asegurar que el número de licencia nunca sea nulo
+            if (doctorRequest.getLicenseNumber() == null || doctorRequest.getLicenseNumber().trim().isEmpty()) {
+                doctorRequest.setLicenseNumber("POR ASIGNAR-" + System.currentTimeMillis());
+                log.info("Generando número de licencia automático: {}", doctorRequest.getLicenseNumber());
+            }
             
-            String errorMessage = switch (e.getMessage()) {
-                case "La contraseña actual es incorrecta" -> 
-                    "La contraseña actual ingresada es incorrecta";
-                case "La nueva contraseña debe ser diferente a la actual" ->
-                    "La nueva contraseña debe ser diferente a la contraseña actual";
-                case "Usuario no encontrado" ->
-                    "Error del sistema. Su sesión puede haber expirado";
-                default -> "Error al cambiar la contraseña: " + e.getMessage();
-            };
+            // Asegurar que la tarifa de consulta nunca sea nula
+            if (doctorRequest.getConsultationFee() == null) {
+                doctorRequest.setConsultationFee(0.0);
+                log.info("Estableciendo tarifa de consulta por defecto: 0.0");
+            }
             
-            model.addAttribute("errorMessage", errorMessage);
-            model.addAttribute("username", username);
-            return "change-password";
-        }
-    }
-
-    // ========== RECUPERACIÓN DE CONTRASEÑA ==========
-
-    /**
-     * Página de recuperación de contraseña
-     * GET /forgot-password
-     */
-    @GetMapping("/forgot-password")
-    public String forgotPasswordPage(Model model) {
-        log.info("Acceso a página de recuperación de contraseña");
-        
-        model.addAttribute("pageTitle", "Recuperar Contraseña");
-        
-        return "forgot-password";
-    }
-
-    /**
-     * Procesar solicitud de recuperación de contraseña - INTEGRADO CON AUTHSERVICE
-     * POST /auth/forgot-password
-     */
-    @PostMapping("/auth/forgot-password")
-    public String processForgotPassword(@RequestParam String email,
-                                      RedirectAttributes redirectAttributes,
-                                      Model model) {
-        
-        log.info("Procesando recuperación de contraseña para email: {}", email);
-        
-        // Validación básica de email
-        if (email == null || email.trim().isEmpty() || !email.contains("@")) {
-            model.addAttribute("errorMessage", "Por favor ingrese un email válido");
-            return "forgot-password";
-        }
-        
-        try {
-            // Usar AuthService real para enviar recuperación
-            authService.sendPasswordResetEmail(email.trim().toLowerCase());
+            // Crear doctor - ahora utilizamos directamente el servicio mejorado
+            // Las validaciones específicas se manejan dentro del servicio
+            DoctorDto newDoctor = doctorService.createDoctor(doctorRequest);
             
-            log.info("Solicitud de recuperación procesada para email: {}", email);
+            log.info("Doctor registrado exitosamente por admin {} con ID: {}", 
+                    authentication.getName(), newDoctor.getId());
             
-            // Siempre mostrar el mismo mensaje por seguridad
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Si el email existe en nuestro sistema, recibirá instrucciones para restablecer su contraseña en los próximos minutos. Revise también su carpeta de spam.");
+            // Crear un nuevo doctor request para limpiar el formulario
+            com.example.miapp.dto.doctor.CreateDoctorRequest newDoctorRequest = new com.example.miapp.dto.doctor.CreateDoctorRequest();
+            newDoctorRequest.setConsultationFee(0.0);
+            newDoctorRequest.setLicenseNumber("POR ASIGNAR-" + System.currentTimeMillis());
             
-            return "redirect:/login";
+            // Preparar el modelo para volver a la misma página
+            model.addAttribute("doctorRequest", newDoctorRequest);
+            model.addAttribute("adminUser", authentication.getName());
+            model.addAttribute("specialties", specialtyRepository.findAll());
+            model.addAttribute("successMessage", 
+                String.format("Doctor '%s %s' registrado exitosamente con ID: %d", 
+                    doctorRequest.getFirstName(), doctorRequest.getLastName(), newDoctor.getId()));
+            
+            // Volver a la misma página de registro
+            return "admin/register-doctor";
+            
+        } catch (DoctorValidationException e) {
+            // Manejo específico para errores de validación de doctores
+            log.warn("Error de validación al registrar doctor por admin {}: {}", 
+                    authentication.getName(), e.getMessage());
+            
+            model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("doctorRequest", doctorRequest);
+            model.addAttribute("adminUser", authentication.getName());
+            model.addAttribute("specialties", specialtyRepository.findAll());
+            
+            return "admin/register-doctor";
+            
+        } catch (DataIntegrityViolationException e) {
+            // Manejo específico para errores de integridad de datos (duplicados, etc.)
+            log.error("Error de integridad de datos al registrar doctor por admin {}: {}", 
+                    authentication.getName(), e.getMessage());
+            
+            String errorMsg = "Error de integridad en la base de datos. ";
+            
+            // Intentar extraer mensaje más amigable
+            if (e.getMessage().contains("unique constraint") || e.getMessage().contains("Duplicate entry")) {
+                if (e.getMessage().contains("username")) {
+                    errorMsg += "El nombre de usuario ya existe.";
+                } else if (e.getMessage().contains("email")) {
+                    errorMsg += "El email ya está registrado.";
+                } else if (e.getMessage().contains("license")) {
+                    errorMsg += "El número de licencia ya está registrado.";
+                } else {
+                    errorMsg += "Hay información duplicada en la solicitud.";
+                }
+            } else {
+                errorMsg += "Por favor verifique la información ingresada.";
+            }
+            
+            model.addAttribute("errorMessage", errorMsg);
+            model.addAttribute("doctorRequest", doctorRequest);
+            model.addAttribute("adminUser", authentication.getName());
+            model.addAttribute("specialties", specialtyRepository.findAll());
+            
+            return "admin/register-doctor";
             
         } catch (Exception e) {
-            log.error("Error al procesar recuperación de contraseña para {}: {}", email, e.getMessage());
+            // Manejo genérico para otros errores inesperados
+            log.error("Error inesperado al registrar doctor por admin {}: {}", 
+                    authentication.getName(), e.getMessage(), e);
             
-            // Por seguridad, siempre mostrar el mismo mensaje exitoso
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Si el email existe en nuestro sistema, recibirá instrucciones para restablecer su contraseña en los próximos minutos. Revise también su carpeta de spam.");
+            model.addAttribute("errorMessage", "Error al crear doctor: " + e.getMessage());
+            model.addAttribute("doctorRequest", doctorRequest);
+            model.addAttribute("adminUser", authentication.getName());
+            model.addAttribute("specialties", specialtyRepository.findAll());
             
-            return "redirect:/login";
+            return "admin/register-doctor";
         }
     }
-
-    /**
-     * Página de restablecimiento con token (futuro)
-     * GET /reset-password
-     */
-    @GetMapping("/reset-password")
-    public String resetPasswordPage(@RequestParam(required = false) String token,
-                                   Model model) {
-        
-        log.info("Acceso a página de restablecimiento de contraseña con token");
-        
-        if (token == null || token.trim().isEmpty()) {
-            log.warn("Intento de acceso a reset sin token");
-            return "redirect:/forgot-password";
-        }
-        
-        // TODO: Validar token en implementación futura
-        
-        model.addAttribute("pageTitle", "Restablecer Contraseña");
-        model.addAttribute("token", token);
-        
-        return "reset-password";
-    }
-
-    // ========== PÁGINAS DE ERROR Y ACCESO ==========
-
-    /**
-     * Página de acceso denegado
-     * GET /access-denied
-     */
-    @GetMapping("/access-denied")
-    public String accessDenied(Model model, HttpServletRequest request, Authentication authentication) {
-        
-        String username = authentication != null ? authentication.getName() : "Anónimo";
-        log.warn("Acceso denegado para usuario {} desde IP: {} a recurso: {}", 
-                username, getClientIpAddress(request), request.getRequestURI());
-        
-        model.addAttribute("errorTitle", "Acceso Denegado");
-        model.addAttribute("errorMessage", "No tiene permisos para acceder a esta página");
-        model.addAttribute("requestedResource", request.getRequestURI());
-        model.addAttribute("username", username);
-        
-        return "error/access-denied";
-    }
-
-    /**
-     * Página de cuenta bloqueada
-     * GET /account-locked
-     */
-    @GetMapping("/account-locked")
-    public String accountLocked(@RequestParam(required = false) String reason,
-                               Model model) {
-        
-        log.info("Acceso a página de cuenta bloqueada");
-        
-        model.addAttribute("pageTitle", "Cuenta Bloqueada");
-        
-        String message = switch (reason != null ? reason : "general") {
-            case "inactive" -> "Su cuenta ha sido desactivada por un administrador";
-            case "expired" -> "Su cuenta ha expirado. Contacte al administrador";
-            case "security" -> "Su cuenta ha sido bloqueada por razones de seguridad";
-            default -> "Su cuenta no está disponible en este momento";
-        };
-        
-        model.addAttribute("lockMessage", message);
-        
-        return "account-locked";
-    }
-
-    // ========== ENDPOINTS AJAX PARA SPA ==========
-
-    /**
-     * Manejo de errores de autenticación para AJAX
-     * GET/POST /auth/ajax-error
-     */
-    @RequestMapping(value = "/auth/ajax-error", method = {RequestMethod.GET, RequestMethod.POST})
-    @ResponseBody
-    public String ajaxAuthError(@RequestParam(required = false) String type) {
-        
-        String errorType = type != null ? type : "expired";
-        
-        return switch (errorType) {
-            case "expired" -> "{\"error\": \"Sesión expirada\", \"redirect\": \"/login?expired=true\"}";
-            case "unauthorized" -> "{\"error\": \"No autorizado\", \"redirect\": \"/login?error=true\"}"; 
-            case "forbidden" -> "{\"error\": \"Acceso denegado\", \"redirect\": \"/access-denied\"}";
-            default -> "{\"error\": \"Error de autenticación\", \"redirect\": \"/login\"}";
-        };
-    }
-
-    // ========== UTILIDADES Y VALIDACIONES ==========
-
+    
     /**
      * Endpoint para validar disponibilidad de username (AJAX)
      * GET /auth/check-username
      */
     @GetMapping("/auth/check-username")
     @ResponseBody
-    @PreAuthorize("hasRole('ADMIN')")
     public String checkUsernameAvailability(@RequestParam String username) {
         
         if (username == null || username.trim().length() < 3) {
@@ -562,7 +300,6 @@ public class AuthController {
      */
     @GetMapping("/auth/check-email")
     @ResponseBody
-    @PreAuthorize("hasRole('ADMIN')")
     public String checkEmailAvailability(@RequestParam String email) {
         
         if (email == null || !email.contains("@")) {
@@ -575,8 +312,6 @@ public class AuthController {
             !exists, 
             exists ? "Email ya registrado" : "Email disponible");
     }
-
-    // ========== MÉTODOS PRIVADOS UTILITARIOS ==========
 
     /**
      * Obtiene la dirección IP real del cliente
