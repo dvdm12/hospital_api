@@ -24,67 +24,63 @@ jobs:
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-
           SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
           SPRING_APP_NAME: ${{ secrets.SPRING_APP_NAME }}
           SPRING_APP_PORT: ${{ secrets.SPRING_APP_PORT }}
           SPRING_PROFILES_ACTIVE: ${{ secrets.SPRING_PROFILES_ACTIVE }}
-
           SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
           SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
-
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
           JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
           JWT_COOKIE_NAME: ${{ secrets.JWT_COOKIE_NAME }}
-
           SWAGGER_ENABLED: ${{ secrets.SWAGGER_ENABLED }}
 
         run: |
           mkdir -p ~/.ssh
           echo "$PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H $HOST_NAME >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$HOST_NAME" >> ~/.ssh/known_hosts
 
-          ssh -T -i ~/.ssh/deploy_key ${USER_NAME}@${HOST_NAME} <<EOF
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" << 'EOF'
             set -e
 
-            if [ ! -d "${PROJECT_PATH}/.git" ]; then
-              mkdir -p \$(dirname ${PROJECT_PATH})
-              git clone ${GIT_REPO} ${PROJECT_PATH}
+            if [ ! -d "$PROJECT_PATH/.git" ]; then
+              mkdir -p "$(dirname $PROJECT_PATH)"
+              git clone "$GIT_REPO" "$PROJECT_PATH"
             fi
 
-            cd ${PROJECT_PATH}
+            cd "$PROJECT_PATH"
             git checkout hospital-api/v3
             git fetch --all
             git reset --hard origin/hospital-api/v3
             git pull origin hospital-api/v3
 
-            cat <<EOT > .env
-MYSQL_PORT=${MYSQL_PORT}
-MYSQL_DATABASE=${MYSQL_DATABASE}
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+            cat > .env <<EOT
+MYSQL_PORT=$MYSQL_PORT
+MYSQL_DATABASE=$MYSQL_DATABASE
+MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
 
-SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
-SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
-SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
-SPRING_APP_NAME=${SPRING_APP_NAME}
-SPRING_APP_PORT=${SPRING_APP_PORT}
-SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL
+SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME
+SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD
+SPRING_APP_NAME=$SPRING_APP_NAME
+SPRING_APP_PORT=$SPRING_APP_PORT
+SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE
 
-SPRING_SECURITY_USER_NAME=${SPRING_SECURITY_USER_NAME}
-SPRING_SECURITY_USER_PASSWORD=${SPRING_SECURITY_USER_PASSWORD}
+SPRING_SECURITY_USER_NAME=$SPRING_SECURITY_USER_NAME
+SPRING_SECURITY_USER_PASSWORD=$SPRING_SECURITY_USER_PASSWORD
 
-JWT_SECRET=${JWT_SECRET}
-JWT_EXPIRATION=${JWT_EXPIRATION}
-JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
-JWT_COOKIE_NAME=${JWT_COOKIE_NAME}
+JWT_SECRET=$JWT_SECRET
+JWT_EXPIRATION=$JWT_EXPIRATION
+JWT_REFRESH_EXPIRATION=$JWT_REFRESH_EXPIRATION
+JWT_COOKIE_NAME=$JWT_COOKIE_NAME
 
-SWAGGER_ENABLED=${SWAGGER_ENABLED}
+SWAGGER_ENABLED=$SWAGGER_ENABLED
 EOT
 
             docker ps -q | xargs -r docker stop
-            docker compose up -d --build
+            docker compose up -d
 EOF

@@ -23,10 +23,7 @@ services:
       - eam_apps
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: hospital-api:latest
+    image: dvdma12/hospital-api:latest
     container_name: hospital_api_app
     restart: always
     env_file:
@@ -58,7 +55,6 @@ services:
         condition: service_healthy
     networks:
       - eam_apps
-
 
 networks:
   eam_apps:
