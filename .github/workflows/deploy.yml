@@ -41,8 +41,27 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$HOST_NAME" >> ~/.ssh/known_hosts
           
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" '
+          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" bash -s <<'EOF'
           set -e
+          
+          export PROJECT_PATH="${PROJECT_PATH}"
+          export GIT_REPO="${GIT_REPO}"
+          export MYSQL_PORT="${MYSQL_PORT}"
+          export MYSQL_DATABASE="${MYSQL_DATABASE}"
+          export MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}"
+          export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}"
+          export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}"
+          export SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}"
+          export SPRING_APP_NAME="${SPRING_APP_NAME}"
+          export SPRING_APP_PORT="${SPRING_APP_PORT}"
+          export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE}"
+          export SPRING_SECURITY_USER_NAME="${SPRING_SECURITY_USER_NAME}"
+          export SPRING_SECURITY_USER_PASSWORD="${SPRING_SECURITY_USER_PASSWORD}"
+          export JWT_SECRET="${JWT_SECRET}"
+          export JWT_EXPIRATION="${JWT_EXPIRATION}"
+          export JWT_REFRESH_EXPIRATION="${JWT_REFRESH_EXPIRATION}"
+          export JWT_COOKIE_NAME="${JWT_COOKIE_NAME}"
+          export SWAGGER_ENABLED="${SWAGGER_ENABLED}"
           
           echo "Stopping ALL running containers..."
           if [ "$(docker ps -q)" ]; then
@@ -55,38 +74,38 @@ jobs:
           docker container prune -f
           docker network prune -f
           
-          if [ ! -d "'$PROJECT_PATH'/.git" ]; then
-            mkdir -p "$(dirname '$PROJECT_PATH')"
-            git clone "'$GIT_REPO'" "'$PROJECT_PATH'"
+          if [ ! -d "$PROJECT_PATH/.git" ]; then
+            mkdir -p "$(dirname $PROJECT_PATH)"
+            git clone "$GIT_REPO" "$PROJECT_PATH"
           fi
           
-          cd "'$PROJECT_PATH'"
+          cd "$PROJECT_PATH"
           git checkout hospital-api/v3
           git fetch --all
           git reset --hard origin/hospital-api/v3
           git pull origin hospital-api/v3
           
           cat > .env <<EOT
-MYSQL_PORT='$MYSQL_PORT'
-MYSQL_DATABASE='$MYSQL_DATABASE'
-MYSQL_ROOT_PASSWORD='$MYSQL_ROOT_PASSWORD'
+MYSQL_PORT=$MYSQL_PORT
+MYSQL_DATABASE=$MYSQL_DATABASE
+MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
 
-SPRING_DATASOURCE_URL='$SPRING_DATASOURCE_URL'
-SPRING_DATASOURCE_USERNAME='$SPRING_DATASOURCE_USERNAME'
-SPRING_DATASOURCE_PASSWORD='$SPRING_DATASOURCE_PASSWORD'
-SPRING_APP_NAME='$SPRING_APP_NAME'
-SPRING_APP_PORT='$SPRING_APP_PORT'
-SPRING_PROFILES_ACTIVE='$SPRING_PROFILES_ACTIVE'
+SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL
+SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME
+SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD
+SPRING_APP_NAME=$SPRING_APP_NAME
+SPRING_APP_PORT=$SPRING_APP_PORT
+SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE
 
-SPRING_SECURITY_USER_NAME='$SPRING_SECURITY_USER_NAME'
-SPRING_SECURITY_USER_PASSWORD='$SPRING_SECURITY_USER_PASSWORD'
+SPRING_SECURITY_USER_NAME=$SPRING_SECURITY_USER_NAME
+SPRING_SECURITY_USER_PASSWORD=$SPRING_SECURITY_USER_PASSWORD
 
-JWT_SECRET='$JWT_SECRET'
-JWT_EXPIRATION='$JWT_EXPIRATION'
-JWT_REFRESH_EXPIRATION='$JWT_REFRESH_EXPIRATION'
-JWT_COOKIE_NAME='$JWT_COOKIE_NAME'
+JWT_SECRET=$JWT_SECRET
+JWT_EXPIRATION=$JWT_EXPIRATION
+JWT_REFRESH_EXPIRATION=$JWT_REFRESH_EXPIRATION
+JWT_COOKIE_NAME=$JWT_COOKIE_NAME
 
-SWAGGER_ENABLED='$SWAGGER_ENABLED'
+SWAGGER_ENABLED=$SWAGGER_ENABLED
 EOT
           
           echo "Starting your containers..."
@@ -96,6 +115,6 @@ EOT
           docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
           
           echo "Deployment completed!"
-          '
+EOF
           
           rm -f ~/.ssh/deploy_key
