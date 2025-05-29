@@ -83,4 +83,4 @@ jobs:
 
             echo "Levantando contenedores con Docker Compose..."
             docker compose up -d
-EOF
+
