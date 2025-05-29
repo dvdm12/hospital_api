@@ -2,8 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches:
-      - hospital-api/v3
+    branches: [hospital-api/v3]
 
 jobs:
   deploy:
@@ -21,26 +20,22 @@ jobs:
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
           GIT_REPO: ${{ secrets.GIT_REPO }}
 
-          # Variables de entorno (.env)
+          # .env secrets
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-
           SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
           SPRING_APP_NAME: ${{ secrets.SPRING_APP_NAME }}
           SPRING_APP_PORT: ${{ secrets.SPRING_APP_PORT }}
           SPRING_PROFILES_ACTIVE: ${{ secrets.SPRING_PROFILES_ACTIVE }}
-
           SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
           SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
-
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
           JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
           JWT_COOKIE_NAME: ${{ secrets.JWT_COOKIE_NAME }}
-
           SWAGGER_ENABLED: ${{ secrets.SWAGGER_ENABLED }}
 
         run: |
@@ -52,48 +47,41 @@ jobs:
           ssh -T -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" <<EOF
             set -e
 
-            echo "Creando directorio si no existe..."
+            echo "✅ Verificando directorio de despliegue..."
             mkdir -p "$PROJECT_PATH"
 
             if [ ! -d "$PROJECT_PATH/.git" ]; then
-              echo "Clonando repositorio..."
+              echo "📦 Clonando repositorio..."
               git clone "$GIT_REPO" "$PROJECT_PATH"
             fi
 
             cd "$PROJECT_PATH"
-            echo "Cambiando a rama hospital-api/v3..."
-            git fetch --all
+            echo "🚀 Actualizando código..."
+            git fetch origin
             git checkout hospital-api/v3
             git reset --hard origin/hospital-api/v3
-            git pull origin hospital-api/v3
 
-            echo "Escribiendo archivo .env..."
-            cat <<EOT > .env
-MYSQL_PORT=$MYSQL_PORT
-MYSQL_DATABASE=$MYSQL_DATABASE
-MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
+            echo "📝 Generando archivo .env..."
+            echo "MYSQL_PORT=$MYSQL_PORT" > .env
+            echo "MYSQL_DATABASE=$MYSQL_DATABASE" >> .env
+            echo "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD" >> .env
+            echo "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL" >> .env
+            echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME" >> .env
+            echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD" >> .env
+            echo "SPRING_APP_NAME=$SPRING_APP_NAME" >> .env
+            echo "SPRING_APP_PORT=$SPRING_APP_PORT" >> .env
+            echo "SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE" >> .env
+            echo "SPRING_SECURITY_USER_NAME=$SPRING_SECURITY_USER_NAME" >> .env
+            echo "SPRING_SECURITY_USER_PASSWORD=$SPRING_SECURITY_USER_PASSWORD" >> .env
+            echo "JWT_SECRET=$JWT_SECRET" >> .env
+            echo "JWT_EXPIRATION=$JWT_EXPIRATION" >> .env
+            echo "JWT_REFRESH_EXPIRATION=$JWT_REFRESH_EXPIRATION" >> .env
+            echo "JWT_COOKIE_NAME=$JWT_COOKIE_NAME" >> .env
+            echo "SWAGGER_ENABLED=$SWAGGER_ENABLED" >> .env
 
-SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL
-SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME
-SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD
-SPRING_APP_NAME=$SPRING_APP_NAME
-SPRING_APP_PORT=$SPRING_APP_PORT
-SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE
-
-SPRING_SECURITY_USER_NAME=$SPRING_SECURITY_USER_NAME
-SPRING_SECURITY_USER_PASSWORD=$SPRING_SECURITY_USER_PASSWORD
-
-JWT_SECRET=$JWT_SECRET
-JWT_EXPIRATION=$JWT_EXPIRATION
-JWT_REFRESH_EXPIRATION=$JWT_REFRESH_EXPIRATION
-JWT_COOKIE_NAME=$JWT_COOKIE_NAME
-
-SWAGGER_ENABLED=$SWAGGER_ENABLED
-EOT
-
-            echo "Parando contenedores actuales si existen..."
+            echo "🛑 Parando contenedores existentes..."
             docker ps -q | xargs -r docker stop || true
 
-            echo "Levantando servicios..."
+            echo "🐳 Iniciando contenedores..."
             docker compose up -d
 EOF
