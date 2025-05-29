@@ -12,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: SSH Deploy to macOS Server
+      - name: SSH Deploy
         env:
           PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           HOST_NAME: ${{ secrets.SSH_HOST }}
@@ -20,7 +20,7 @@ jobs:
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
           GIT_REPO: ${{ secrets.GIT_REPO }}
 
-          # Secrets del .env
+          # Secrets del archivo .env
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
@@ -48,11 +48,11 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$HOST_NAME" >> ~/.ssh/known_hosts
 
-          ssh -T -i ~/.ssh/deploy_key ${USER_NAME}@${HOST_NAME} <<EOF
+          ssh -T -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" <<'EOF'
             set -e
 
             if [ ! -d "$PROJECT_PATH/.git" ]; then
-              mkdir -p \$(dirname "$PROJECT_PATH")
+              mkdir -p "$(dirname "$PROJECT_PATH")"
               git clone "$GIT_REPO" "$PROJECT_PATH"
             fi
 
@@ -61,29 +61,26 @@ jobs:
             git checkout hospital-api/v3
             git reset --hard origin/hospital-api/v3
 
-            cat <<EOT > .env
-MYSQL_PORT=${MYSQL_PORT}
-MYSQL_DATABASE=${MYSQL_DATABASE}
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+            echo "MYSQL_PORT=$MYSQL_PORT" > .env
+            echo "MYSQL_DATABASE=$MYSQL_DATABASE" >> .env
+            echo "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD" >> .env
+            echo "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL" >> .env
+            echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME" >> .env
+            echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD" >> .env
+            echo "SPRING_APP_NAME=$SPRING_APP_NAME" >> .env
+            echo "SPRING_APP_PORT=$SPRING_APP_PORT" >> .env
+            echo "SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE" >> .env
+            echo "SPRING_SECURITY_USER_NAME=$SPRING_SECURITY_USER_NAME" >> .env
+            echo "SPRING_SECURITY_USER_PASSWORD=$SPRING_SECURITY_USER_PASSWORD" >> .env
+            echo "JWT_SECRET=$JWT_SECRET" >> .env
+            echo "JWT_EXPIRATION=$JWT_EXPIRATION" >> .env
+            echo "JWT_REFRESH_EXPIRATION=$JWT_REFRESH_EXPIRATION" >> .env
+            echo "JWT_COOKIE_NAME=$JWT_COOKIE_NAME" >> .env
+            echo "SWAGGER_ENABLED=$SWAGGER_ENABLED" >> .env
 
-SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
-SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
-SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
-SPRING_APP_NAME=${SPRING_APP_NAME}
-SPRING_APP_PORT=${SPRING_APP_PORT}
-SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
-
-SPRING_SECURITY_USER_NAME=${SPRING_SECURITY_USER_NAME}
-SPRING_SECURITY_USER_PASSWORD=${SPRING_SECURITY_USER_PASSWORD}
-
-JWT_SECRET=${JWT_SECRET}
-JWT_EXPIRATION=${JWT_EXPIRATION}
-JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
-JWT_COOKIE_NAME=${JWT_COOKIE_NAME}
-
-SWAGGER_ENABLED=${SWAGGER_ENABLED}
-EOT
-
+            echo "Deteniendo contenedores existentes..."
             docker ps -q | xargs -r docker stop
+
+            echo "Levantando contenedores con Docker Compose..."
             docker compose up -d
 EOF
