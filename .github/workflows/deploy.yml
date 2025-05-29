@@ -36,12 +36,20 @@ jobs:
           JWT_COOKIE_NAME: ${{ secrets.JWT_COOKIE_NAME }}
           SWAGGER_ENABLED: ${{ secrets.SWAGGER_ENABLED }}
         run: |
+          # Verificar que las variables críticas estén definidas
+          if [ -z "$PROJECT_PATH" ] || [ -z "$GIT_REPO" ]; then
+            echo "Error: PROJECT_PATH or GIT_REPO not defined"
+            exit 1
+          fi
+          
           mkdir -p ~/.ssh
           echo "$PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$HOST_NAME" >> ~/.ssh/known_hosts
           
           # Ejecutar comandos uno por uno (adaptado para macOS)
+          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "echo 'Starting deployment...'"
+          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "echo 'PROJECT_PATH: $PROJECT_PATH'"
           ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "echo 'Stopping ALL running containers...'"
           
           ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "
