@@ -2,17 +2,18 @@ name: Deploy
 
 on:
   push:
-    branches: [hospital-api/v3]
+    branches:
+      - hospital-api/v3
 
 jobs:
-  Deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: SSH Deploy to Mac Server
+      - name: SSH Deploy
         env:
           PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           HOST_NAME: ${{ secrets.SSH_HOST }}
@@ -20,7 +21,7 @@ jobs:
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
           GIT_REPO: ${{ secrets.GIT_REPO }}
 
-          # Secrets del .env
+          # Variables de entorno (.env)
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
@@ -46,25 +47,27 @@ jobs:
           mkdir -p ~/.ssh
           echo "$PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H $HOST_NAME >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$HOST_NAME" >> ~/.ssh/known_hosts
 
           ssh -T -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" <<EOF
             set -e
 
-            # Crear ruta si no existe
-            mkdir -p "\$PROJECT_PATH"
+            echo "Creando directorio si no existe..."
+            mkdir -p "$PROJECT_PATH"
 
-            # Clonar el repositorio si no existe
-            if [ ! -d "\$PROJECT_PATH/.git" ]; then
-              git clone "$GIT_REPO" "\$PROJECT_PATH"
+            if [ ! -d "$PROJECT_PATH/.git" ]; then
+              echo "Clonando repositorio..."
+              git clone "$GIT_REPO" "$PROJECT_PATH"
             fi
 
-            cd "\$PROJECT_PATH"
-            git checkout hospital-api/v3
+            cd "$PROJECT_PATH"
+            echo "Cambiando a rama hospital-api/v3..."
             git fetch --all
+            git checkout hospital-api/v3
             git reset --hard origin/hospital-api/v3
+            git pull origin hospital-api/v3
 
-            # Crear archivo .env
+            echo "Escribiendo archivo .env..."
             cat <<EOT > .env
 MYSQL_PORT=$MYSQL_PORT
 MYSQL_DATABASE=$MYSQL_DATABASE
@@ -88,9 +91,9 @@ JWT_COOKIE_NAME=$JWT_COOKIE_NAME
 SWAGGER_ENABLED=$SWAGGER_ENABLED
 EOT
 
-            echo "Parando contenedores actuales (si existen)..."
+            echo "Parando contenedores actuales si existen..."
             docker ps -q | xargs -r docker stop || true
 
-            echo "Levantando nuevos servicios con Docker Compose..."
+            echo "Levantando servicios..."
             docker compose up -d
 EOF
