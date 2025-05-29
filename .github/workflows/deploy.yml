@@ -10,98 +10,80 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
-      - name: SSH Deploy
+      - name: SSH Deploy to macOS Server
         env:
           PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           HOST_NAME: ${{ secrets.SSH_HOST }}
           USER_NAME: ${{ secrets.USER_NAME }}
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
           GIT_REPO: ${{ secrets.GIT_REPO }}
+
+          # Secrets del .env
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+
           SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
           SPRING_APP_NAME: ${{ secrets.SPRING_APP_NAME }}
           SPRING_APP_PORT: ${{ secrets.SPRING_APP_PORT }}
           SPRING_PROFILES_ACTIVE: ${{ secrets.SPRING_PROFILES_ACTIVE }}
+
           SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
           SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
+
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
           JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
           JWT_COOKIE_NAME: ${{ secrets.JWT_COOKIE_NAME }}
+
           SWAGGER_ENABLED: ${{ secrets.SWAGGER_ENABLED }}
+
         run: |
-          # Verificar que las variables críticas estén definidas
-          if [ -z "$PROJECT_PATH" ] || [ -z "$GIT_REPO" ]; then
-            echo "Error: PROJECT_PATH or GIT_REPO not defined"
-            exit 1
-          fi
-          
           mkdir -p ~/.ssh
           echo "$PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$HOST_NAME" >> ~/.ssh/known_hosts
-          
-          # Ejecutar comandos uno por uno (adaptado para macOS)
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "echo 'Starting deployment...'"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "echo 'PROJECT_PATH: $PROJECT_PATH'"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "echo 'Stopping ALL running containers...'"
-          
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "
-          if [ \"\$(docker ps -q)\" ]; then
-            docker ps -q | xargs docker stop -t 30
-            echo 'All containers stopped'
-          else
-            echo 'No running containers found'
-          fi"
-          
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "docker container prune -f"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "docker network prune -f"
-          
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "
-          if [ ! -d \"$PROJECT_PATH/.git\" ]; then
-            mkdir -p \"\$(dirname $PROJECT_PATH)\"
-            git clone \"$GIT_REPO\" \"$PROJECT_PATH\"
-          fi"
-          
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && git checkout hospital-api/v3"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && git fetch --all"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && git reset --hard origin/hospital-api/v3"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && git pull origin hospital-api/v3"
-          
-          # Crear archivo .env línea por línea
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'MYSQL_PORT=$MYSQL_PORT' > .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'MYSQL_DATABASE=$MYSQL_DATABASE' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo '' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SPRING_APP_NAME=$SPRING_APP_NAME' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SPRING_APP_PORT=$SPRING_APP_PORT' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo '' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SPRING_SECURITY_USER_NAME=$SPRING_SECURITY_USER_NAME' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SPRING_SECURITY_USER_PASSWORD=$SPRING_SECURITY_USER_PASSWORD' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo '' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'JWT_SECRET=$JWT_SECRET' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'JWT_EXPIRATION=$JWT_EXPIRATION' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'JWT_REFRESH_EXPIRATION=$JWT_REFRESH_EXPIRATION' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'JWT_COOKIE_NAME=$JWT_COOKIE_NAME' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo '' >> .env"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'SWAGGER_ENABLED=$SWAGGER_ENABLED' >> .env"
-          
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && echo 'Starting your containers...'"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "cd \"$PROJECT_PATH\" && docker compose up -d --build"
-          
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "echo 'Container status:'"
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'"
-          
-          ssh -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" "echo 'Deployment completed!'"
-          
-          rm -f ~/.ssh/deploy_key
+
+          ssh -T -i ~/.ssh/deploy_key ${USER_NAME}@${HOST_NAME} <<EOF
+            set -e
+
+            if [ ! -d "$PROJECT_PATH/.git" ]; then
+              mkdir -p \$(dirname "$PROJECT_PATH")
+              git clone "$GIT_REPO" "$PROJECT_PATH"
+            fi
+
+            cd "$PROJECT_PATH"
+            git fetch origin
+            git checkout hospital-api/v3
+            git reset --hard origin/hospital-api/v3
+
+            cat <<EOT > .env
+MYSQL_PORT=${MYSQL_PORT}
+MYSQL_DATABASE=${MYSQL_DATABASE}
+MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+
+SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+SPRING_APP_NAME=${SPRING_APP_NAME}
+SPRING_APP_PORT=${SPRING_APP_PORT}
+SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+
+SPRING_SECURITY_USER_NAME=${SPRING_SECURITY_USER_NAME}
+SPRING_SECURITY_USER_PASSWORD=${SPRING_SECURITY_USER_PASSWORD}
+
+JWT_SECRET=${JWT_SECRET}
+JWT_EXPIRATION=${JWT_EXPIRATION}
+JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
+JWT_COOKIE_NAME=${JWT_COOKIE_NAME}
+
+SWAGGER_ENABLED=${SWAGGER_ENABLED}
+EOT
+
+            docker ps -q | xargs -r docker stop
+            docker compose up -d
+EOF
