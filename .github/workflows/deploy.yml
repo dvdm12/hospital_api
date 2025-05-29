@@ -20,22 +20,25 @@ jobs:
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
           GIT_REPO: ${{ secrets.GIT_REPO }}
 
-          # .env secrets
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+
           SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
           SPRING_APP_NAME: ${{ secrets.SPRING_APP_NAME }}
           SPRING_APP_PORT: ${{ secrets.SPRING_APP_PORT }}
           SPRING_PROFILES_ACTIVE: ${{ secrets.SPRING_PROFILES_ACTIVE }}
+
           SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
           SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
+
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
           JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
           JWT_COOKIE_NAME: ${{ secrets.JWT_COOKIE_NAME }}
+
           SWAGGER_ENABLED: ${{ secrets.SWAGGER_ENABLED }}
 
         run: |
@@ -47,21 +50,20 @@ jobs:
           ssh -T -i ~/.ssh/deploy_key "$USER_NAME@$HOST_NAME" <<EOF
             set -e
 
-            echo "✅ Verificando directorio de despliegue..."
-            mkdir -p "$PROJECT_PATH"
+            echo "📁 Verificando ruta \$PROJECT_PATH"
+            mkdir -p "\$PROJECT_PATH"
 
-            if [ ! -d "$PROJECT_PATH/.git" ]; then
-              echo "📦 Clonando repositorio..."
-              git clone "$GIT_REPO" "$PROJECT_PATH"
+            if [ ! -d "\$PROJECT_PATH/.git" ]; then
+              echo "📥 Clonando repositorio..."
+              git clone "$GIT_REPO" "\$PROJECT_PATH"
             fi
 
-            cd "$PROJECT_PATH"
-            echo "🚀 Actualizando código..."
+            cd "\$PROJECT_PATH"
             git fetch origin
             git checkout hospital-api/v3
             git reset --hard origin/hospital-api/v3
 
-            echo "📝 Generando archivo .env..."
+            echo "📝 Escribiendo archivo .env"
             echo "MYSQL_PORT=$MYSQL_PORT" > .env
             echo "MYSQL_DATABASE=$MYSQL_DATABASE" >> .env
             echo "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD" >> .env
@@ -79,9 +81,9 @@ jobs:
             echo "JWT_COOKIE_NAME=$JWT_COOKIE_NAME" >> .env
             echo "SWAGGER_ENABLED=$SWAGGER_ENABLED" >> .env
 
-            echo "🛑 Parando contenedores existentes..."
+            echo "🛑 Parando contenedores existentes (si hay)"
             docker ps -q | xargs -r docker stop || true
 
-            echo "🐳 Iniciando contenedores..."
+            echo "🐳 Levantando contenedores"
             docker compose up -d
 EOF
