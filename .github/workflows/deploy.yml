@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: SSH Deploy
         env:
@@ -68,6 +68,21 @@ jobs:
             export JWT_COOKIE_NAME="${JWT_COOKIE_NAME}"
             export SWAGGER_ENABLED="${SWAGGER_ENABLED}"
 
+            echo "🛑 Stopping ALL running containers..."
+            
+            # Parar todos los contenedores con timeout de 30 segundos
+            if [ "$(docker ps -q)" ]; then
+              docker ps -q | xargs -r docker stop -t 30
+              echo "✅ All containers stopped"
+            else
+              echo "ℹ️  No running containers found"
+            fi
+
+            # Limpiar contenedores parados y redes no utilizadas
+            docker container prune -f
+            docker network prune -f
+
+            # Preparar proyecto
             if [ ! -d "$PROJECT_PATH/.git" ]; then
               mkdir -p "$(dirname $PROJECT_PATH)"
               git clone "$GIT_REPO" "$PROJECT_PATH"
@@ -79,6 +94,7 @@ jobs:
             git reset --hard origin/hospital-api/v3
             git pull origin hospital-api/v3
 
+            # Crear archivo .env
             cat > .env <<EOT
 MYSQL_PORT=$MYSQL_PORT
 MYSQL_DATABASE=$MYSQL_DATABASE
@@ -102,6 +118,14 @@ JWT_COOKIE_NAME=$JWT_COOKIE_NAME
 SWAGGER_ENABLED=$SWAGGER_ENABLED
 EOT
 
-            docker ps -q | xargs -r docker stop
-            docker compose up -d
-EOF
+            echo "🚀 Starting your containers..."
+            docker compose up -d --build
+
+            echo "📊 Container status:"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            
+            echo "✅ Deployment completed!"
+          EOF
+
+          # Limpiar clave SSH
+          rm -f ~/.ssh/deploy_key
