@@ -1,6 +1,7 @@
 package com.example.miapp.service.registration;
 
 import com.example.miapp.dto.doctor.CreateDoctorRequest;
+import com.example.miapp.dto.doctor.DoctorSpecialtyRequest;
 import com.example.miapp.dto.patient.CreatePatientRequest;
 import com.example.miapp.dto.user.UserDto;
 import com.example.miapp.entity.*;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Servicio para el registro de diferentes tipos de usuarios en el sistema.
@@ -80,7 +82,7 @@ public class RegistrationService {
                 request.getUsername(), 
                 request.getEmail(), 
                 request.getPassword(),
-                request.getCc(), // Nuevo campo cc
+                request.getCc(), 
                 roles);
         
         // Crear entidad paciente
@@ -107,18 +109,17 @@ public class RegistrationService {
     /**
      * Registra un nuevo doctor en el sistema con su información específica y especialidades.
      *
-     * @param request DTO con la información del doctor
-     * @param specialtyIds IDs de las especialidades del doctor
+     * @param request DTO con la información del doctor y sus especialidades
      * @return DTO con la información del usuario creado
      * @throws IllegalArgumentException si no se proporciona al menos una especialidad
      * @throws RuntimeException si alguna especialidad no existe o hay errores en el proceso
      */
     @Transactional
-    public UserDto registerDoctor(CreateDoctorRequest request, Set<Long> specialtyIds) {
+    public UserDto registerDoctor(CreateDoctorRequest request) {
         log.info("Iniciando registro de doctor: {}", request.getUsername());
         
         // Validar que tenga al menos una especialidad
-        if (specialtyIds == null || specialtyIds.isEmpty()) {
+        if (!request.hasSpecialties()) {
             log.error("Intento de registro de doctor sin especialidades: {}", request.getUsername());
             throw new IllegalArgumentException("El doctor debe tener al menos una especialidad asignada");
         }
@@ -148,26 +149,47 @@ public class RegistrationService {
         
         doctor = doctorRepository.save(doctor);
         
-        // Asignar especialidades
-        for (Long specialtyId : specialtyIds) {
-            Specialty specialty = specialtyRepository.findById(specialtyId)
+        // Asignar especialidades con datos adicionales
+        for (DoctorSpecialtyRequest specialtyRequest : request.getSpecialties()) {
+            Specialty specialty = specialtyRepository.findById(specialtyRequest.getSpecialtyId())
                     .orElseThrow(() -> {
-                        log.error("Especialidad no encontrada durante registro de doctor: {}", specialtyId);
-                        return new RuntimeException("Especialidad no encontrada: " + specialtyId);
+                        log.error("Especialidad no encontrada durante registro de doctor: {}", 
+                                specialtyRequest.getSpecialtyId());
+                        return new RuntimeException("Especialidad no encontrada: " + 
+                                specialtyRequest.getSpecialtyId());
                     });
             
             DoctorSpecialty doctorSpecialty = new DoctorSpecialty();
             doctorSpecialty.setDoctor(doctor);
             doctorSpecialty.setSpecialty(specialty);
-            // Valores por defecto para certificación y experiencia
-            doctorSpecialty.setExperienceLevel("Junior");
+            doctorSpecialty.setExperienceLevel(specialtyRequest.getExperienceLevel());
+            doctorSpecialty.setCertificationDate(specialtyRequest.getCertificationDate());
             
             doctorSpecialtyRepository.save(doctorSpecialty);
-            log.debug("Especialidad {} asignada al doctor {}", specialty.getName(), doctor.getFullName());
+            log.debug("Especialidad {} asignada al doctor {} con nivel {}", 
+                    specialty.getName(), doctor.getFullName(), specialtyRequest.getExperienceLevel());
         }
         
         log.info("Doctor registrado exitosamente: {} con {} especialidades", 
-                request.getUsername(), specialtyIds.size());
+                request.getUsername(), request.getSpecialties().size());
         return userMapper.toDto(user);
+    }
+
+    /**
+     * Método anterior para mantener compatibilidad con código existente
+     * @deprecated Usar registerDoctor(CreateDoctorRequest request) en su lugar
+     */
+    @Deprecated
+    @Transactional
+    public UserDto registerDoctor(CreateDoctorRequest request, Set<Long> specialtyIds) {
+        if (specialtyIds != null && !specialtyIds.isEmpty()) {
+            // Convertir specialtyIds a DoctorSpecialtyRequest
+            Set<DoctorSpecialtyRequest> specialties = specialtyIds.stream()
+                    .map(DoctorSpecialtyRequest::new)
+                    .collect(Collectors.toSet());
+            request.setSpecialties(specialties);
+        }
+        
+        return registerDoctor(request);
     }
 }

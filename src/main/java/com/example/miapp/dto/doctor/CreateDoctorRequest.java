@@ -1,10 +1,12 @@
 package com.example.miapp.dto.doctor;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * DTO for creating new doctors
@@ -29,7 +31,6 @@ public class CreateDoctorRequest {
     @Size(max = 100, message = "Email must not exceed 100 characters")
     private String email;
     
-    // Nuevo campo para cédula de ciudadanía
     @NotBlank(message = "Identification number (CC) is required")
     @Pattern(regexp = "^[0-9]{8,12}$", message = "Identification number must be between 8 and 12 digits")
     @Size(max = 20, message = "Identification number must not exceed 20 characters")
@@ -48,8 +49,9 @@ public class CreateDoctorRequest {
     
     private String profilePicture;
     
-    // Changed from @NotEmpty to allow empty specialties during initial creation
-    private Set<Long> specialtyIds = new HashSet<>();
+    @NotEmpty(message = "Al menos una especialidad debe ser asignada")
+    @Valid
+    private Set<DoctorSpecialtyRequest> specialties = new HashSet<>();
     
     // User account fields
     @NotBlank(message = "Username is required")
@@ -64,41 +66,27 @@ public class CreateDoctorRequest {
      * Default constructor initializes collections
      */
     public CreateDoctorRequest() {
-        this.specialtyIds = new HashSet<>();
-    }
-    
-    /**
-     * Returns default specialties if none are provided
-     * This is a helper method to ensure we always have a non-null collection
-     */
-    public Set<Long> getSpecialtyIds() {
-        if (this.specialtyIds == null) {
-            this.specialtyIds = new HashSet<>();
-        }
-        return this.specialtyIds;
-    }
-    
-    /**
-     * Sets specialty IDs with null safety
-     */
-    public void setSpecialtyIds(Set<Long> specialtyIds) {
-        this.specialtyIds = specialtyIds != null ? specialtyIds : new HashSet<>();
-    }
-    
-    /**
-     * Helper method to add a single specialty ID
-     */
-    public void addSpecialtyId(Long specialtyId) {
-        if (specialtyId != null) {
-            getSpecialtyIds().add(specialtyId);
-        }
+        this.specialties = new HashSet<>();
     }
     
     /**
      * Helper method to check if any specialties are selected
      */
     public boolean hasSpecialties() {
-        return getSpecialtyIds() != null && !getSpecialtyIds().isEmpty();
+        return specialties != null && !specialties.isEmpty();
+    }
+    
+    /**
+     * Helper method to extract just the specialty IDs
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public Set<Long> getSpecialtyIds() {
+        if (specialties == null) {
+            return new HashSet<>();
+        }
+        return specialties.stream()
+                .map(DoctorSpecialtyRequest::getSpecialtyId)
+                .collect(Collectors.toSet());
     }
     
     /**
@@ -106,5 +94,17 @@ public class CreateDoctorRequest {
      */
     public Double getConsultationFee() {
         return this.consultationFee != null ? this.consultationFee : 0.0;
+    }
+    
+    /**
+     * Helper method to add a specialty
+     */
+    public void addSpecialty(DoctorSpecialtyRequest specialty) {
+        if (specialty != null) {
+            if (specialties == null) {
+                specialties = new HashSet<>();
+            }
+            specialties.add(specialty);
+        }
     }
 }

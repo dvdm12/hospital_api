@@ -1,6 +1,7 @@
 package com.example.miapp.service.registration;
 
 import com.example.miapp.dto.doctor.CreateDoctorRequest;
+import com.example.miapp.dto.doctor.DoctorSpecialtyRequest;
 import com.example.miapp.dto.patient.CreatePatientRequest;
 import com.example.miapp.dto.user.UserDto;
 import com.example.miapp.entity.*;
@@ -100,6 +101,16 @@ class RegistrationServiceTest {
         doctorRequest.setLicenseNumber("MED12345");
         doctorRequest.setBiography("Experienced doctor");
         doctorRequest.setConsultationFee(100.0);
+        
+        // Configurar especialidades para el doctor
+        DoctorSpecialtyRequest specialtyRequest = new DoctorSpecialtyRequest();
+        specialtyRequest.setSpecialtyId(1L);
+        specialtyRequest.setExperienceLevel("Senior");
+        specialtyRequest.setCertificationDate(new Date());
+        
+        Set<DoctorSpecialtyRequest> specialties = new HashSet<>();
+        specialties.add(specialtyRequest);
+        doctorRequest.setSpecialties(specialties);
         
         // Configurar especialidad de prueba
         testSpecialty = new Specialty();
@@ -259,8 +270,8 @@ class RegistrationServiceTest {
     class DoctorRegistrationTests {
         
         @Test
-        @DisplayName("Should successfully register a doctor with CC")
-        void registerDoctor_WithCC_Success() {
+        @DisplayName("Should successfully register a doctor with specialties")
+        void registerDoctor_WithSpecialties_Success() {
             // Arrange
             when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
                 .thenReturn(testUser);
@@ -268,23 +279,20 @@ class RegistrationServiceTest {
             when(specialtyRepository.findById(anyLong()))
                 .thenReturn(Optional.of(testSpecialty));
             
-            Set<Long> specialtyIds = new HashSet<>();
-            specialtyIds.add(1L);
-            
             // Act
-            UserDto result = registrationService.registerDoctor(doctorRequest, specialtyIds);
+            UserDto result = registrationService.registerDoctor(doctorRequest);
             
             // Assert
             assertNotNull(result);
             assertEquals(testUserDto.getId(), result.getId());
-            assertEquals(testUserDto.getCc(), result.getCc()); // Verificar cédula
+            assertEquals(testUserDto.getCc(), result.getCc());
             
             // Verify
             verify(authService).registerUser(
                     eq(doctorRequest.getUsername()), 
                     eq(doctorRequest.getEmail()), 
                     eq(doctorRequest.getPassword()), 
-                    eq(doctorRequest.getCc()), // Verificar que se pasa la cédula
+                    eq(doctorRequest.getCc()),
                     argThat(roles -> roles.contains("doctor"))
             );
             
@@ -300,10 +308,53 @@ class RegistrationServiceTest {
             verify(doctorSpecialtyRepository).save(argThat(ds ->
                 ds.getDoctor() != null &&
                 ds.getSpecialty() == testSpecialty &&
-                "Junior".equals(ds.getExperienceLevel())
+                "Senior".equals(ds.getExperienceLevel())
             ));
             
             verify(userMapper).toDto(testUser);
+        }
+        
+        @Test
+        @DisplayName("Should throw exception when no specialties provided")
+        void registerDoctor_NoSpecialties_ThrowsException() {
+            // Arrange
+            doctorRequest.setSpecialties(new HashSet<>());
+            
+            // Act & Assert
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> 
+                registrationService.registerDoctor(doctorRequest)
+            );
+            
+            assertTrue(exception.getMessage().contains("especialidad"));
+            
+            // Verify
+            verify(authService, never()).registerUser(anyString(), anyString(), anyString(), anyString(), anySet());
+            verify(doctorRepository, never()).save(any());
+            verify(doctorSpecialtyRepository, never()).save(any());
+        }
+        
+        @Test
+        @DisplayName("Should throw exception when specialty not found")
+        void registerDoctor_SpecialtyNotFound_ThrowsException() {
+            // Arrange
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
+                .thenReturn(testUser);
+            
+            when(specialtyRepository.findById(anyLong()))
+                .thenReturn(Optional.empty());
+            
+            // Act & Assert
+            RuntimeException exception = assertThrows(RuntimeException.class, () -> 
+                registrationService.registerDoctor(doctorRequest)
+            );
+            
+            assertTrue(exception.getMessage().contains("Especialidad no encontrada"));
+            
+            // Verify
+            verify(authService).registerUser(anyString(), anyString(), anyString(), anyString(), anySet());
+            verify(doctorRepository).save(any());
+            verify(specialtyRepository).findById(anyLong());
+            verify(doctorSpecialtyRepository, never()).save(any());
         }
         
         @Test
@@ -314,12 +365,9 @@ class RegistrationServiceTest {
             when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
                 .thenThrow(new RuntimeException(errorMessage));
             
-            Set<Long> specialtyIds = new HashSet<>();
-            specialtyIds.add(1L);
-            
             // Act & Assert
             RuntimeException exception = assertThrows(RuntimeException.class, () -> 
-                registrationService.registerDoctor(doctorRequest, specialtyIds)
+                registrationService.registerDoctor(doctorRequest)
             );
             
             assertEquals(errorMessage, exception.getMessage());
@@ -334,6 +382,82 @@ class RegistrationServiceTest {
             );
             verify(doctorRepository, never()).save(any());
             verify(doctorSpecialtyRepository, never()).save(any());
+        }
+        
+        @Test
+        @DisplayName("Should successfully register a doctor using deprecated method")
+        void registerDoctor_WithSpecialtyIds_Success() {
+            // Arrange
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
+                .thenReturn(testUser);
+            
+            when(specialtyRepository.findById(anyLong()))
+                .thenReturn(Optional.of(testSpecialty));
+            
+            Set<Long> specialtyIds = new HashSet<>();
+            specialtyIds.add(1L);
+            
+            // Limpiar especialidades para probar la conversión
+            doctorRequest.setSpecialties(new HashSet<>());
+            
+            // Act
+            UserDto result = registrationService.registerDoctor(doctorRequest, specialtyIds);
+            
+            // Assert
+            assertNotNull(result);
+            
+            // Verify
+            verify(authService).registerUser(
+                    eq(doctorRequest.getUsername()), 
+                    eq(doctorRequest.getEmail()), 
+                    eq(doctorRequest.getPassword()), 
+                    eq(doctorRequest.getCc()),
+                    argThat(roles -> roles.contains("doctor"))
+            );
+            
+            verify(specialtyRepository).findById(1L);
+            
+            // El método deprecated debería convertir IDs a DoctorSpecialtyRequest
+            verify(doctorSpecialtyRepository).save(any(DoctorSpecialty.class));
+        }
+        
+        @Test
+        @DisplayName("Should handle multiple specialties")
+        void registerDoctor_MultipleSpecialties_Success() {
+            // Arrange
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
+                .thenReturn(testUser);
+            
+            Specialty specialty1 = new Specialty();
+            specialty1.setId(1L);
+            specialty1.setName("Cardiology");
+            
+            Specialty specialty2 = new Specialty();
+            specialty2.setId(2L);
+            specialty2.setName("Neurology");
+            
+            when(specialtyRepository.findById(1L)).thenReturn(Optional.of(specialty1));
+            when(specialtyRepository.findById(2L)).thenReturn(Optional.of(specialty2));
+            
+            // Crear múltiples especialidades
+            DoctorSpecialtyRequest specialtyRequest1 = new DoctorSpecialtyRequest(1L, "Senior", new Date());
+            DoctorSpecialtyRequest specialtyRequest2 = new DoctorSpecialtyRequest(2L, "Mid-level", new Date());
+            
+            Set<DoctorSpecialtyRequest> specialties = new HashSet<>();
+            specialties.add(specialtyRequest1);
+            specialties.add(specialtyRequest2);
+            doctorRequest.setSpecialties(specialties);
+            
+            // Act
+            UserDto result = registrationService.registerDoctor(doctorRequest);
+            
+            // Assert
+            assertNotNull(result);
+            
+            // Verify
+            verify(specialtyRepository).findById(1L);
+            verify(specialtyRepository).findById(2L);
+            verify(doctorSpecialtyRepository, times(2)).save(any(DoctorSpecialty.class));
         }
     }
 }

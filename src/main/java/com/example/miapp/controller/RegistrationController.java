@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Controlador REST para el registro de diferentes tipos de usuarios en el sistema.
@@ -48,10 +47,14 @@ public class RegistrationController {
         }
         
         try {
+            // Usar cc si está disponible
+            String cc = request.getOrDefault("cc", null);
+            
             UserDto userDto = registrationService.registerAdmin(
                     request.get("username"),
                     request.get("email"),
-                    request.get("password"));
+                    request.get("password"),
+                    cc);
             
             log.info("Administrador registrado exitosamente: {}", userDto.getUsername());
             return ResponseEntity.status(HttpStatus.CREATED).body(userDto);
@@ -92,19 +95,16 @@ public class RegistrationController {
      * Endpoint para registrar un nuevo doctor.
      * Solo accesible para usuarios con rol ADMIN.
      *
-     * @param request DTO con los datos del doctor
+     * @param request DTO con los datos del doctor y sus especialidades
      * @return ResponseEntity con los datos del usuario creado
      */
     @PostMapping("/api/admin/register/doctor")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> registerDoctor(
-            @Valid @RequestBody CreateDoctorRequest request,
-            @RequestParam(required = false) Set<Long> specialtyIds) {
-        
+    public ResponseEntity<?> registerDoctor(@Valid @RequestBody CreateDoctorRequest request) {
         log.info("Solicitud recibida para registrar doctor: {}", request.getUsername());
         
         try {
-            UserDto userDto = registrationService.registerDoctor(request, specialtyIds);
+            UserDto userDto = registrationService.registerDoctor(request);
             
             log.info("Doctor registrado exitosamente: {}", userDto.getUsername());
             return ResponseEntity.status(HttpStatus.CREATED).body(userDto);
