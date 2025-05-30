@@ -26,8 +26,6 @@ import java.util.Set;
 public class RegistrationService {
 
     private final AuthService authService;
-    // Eliminamos la dependencia no utilizada:
-    // private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
@@ -40,19 +38,28 @@ public class RegistrationService {
      * @param username Nombre de usuario
      * @param email Correo electrónico
      * @param password Contraseña
+     * @param cc Número de cédula o identificación
      * @return DTO con la información del usuario creado
      */
     @Transactional
-    public UserDto registerAdmin(String username, String email, String password) {
+    public UserDto registerAdmin(String username, String email, String password, String cc) {
         log.info("Iniciando registro de administrador: {}", username);
         
         Set<String> roles = new HashSet<>();
         roles.add("admin");
         
-        User user = authService.registerUser(username, email, password, roles);
+        User user = authService.registerUser(username, email, password, cc, roles);
         
         log.info("Administrador registrado exitosamente: {}", username);
         return userMapper.toDto(user);
+    }
+    
+    /**
+     * Método sobrecargado para mantener compatibilidad con código existente
+     */
+    @Transactional
+    public UserDto registerAdmin(String username, String email, String password) {
+        return registerAdmin(username, email, password, null); // Sin cédula
     }
 
     /**
@@ -72,7 +79,8 @@ public class RegistrationService {
         User user = authService.registerUser(
                 request.getUsername(), 
                 request.getEmail(), 
-                request.getPassword(), 
+                request.getPassword(),
+                request.getCc(), // Nuevo campo cc
                 roles);
         
         // Crear entidad paciente
@@ -122,7 +130,8 @@ public class RegistrationService {
         User user = authService.registerUser(
                 request.getUsername(), 
                 request.getEmail(), 
-                request.getPassword(), 
+                request.getPassword(),
+                request.getCc(), 
                 roles);
         
         // Crear entidad doctor

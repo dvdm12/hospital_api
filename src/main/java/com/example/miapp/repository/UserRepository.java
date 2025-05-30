@@ -47,6 +47,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     /**
+ * Verifica si existe un usuario con la cédula proporcionada
+ * 
+ * @param cc número de cédula a verificar
+ * @return true si existe un usuario con esa cédula, false en caso contrario
+ */
+boolean existsByCc(String cc);
+
+    /**
      * Checks if a user with the given email exists.
      *
      * @param email the email to check

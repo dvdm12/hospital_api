@@ -68,73 +68,90 @@ public class AuthService {
 
     // ========== MÉTODOS DE REGISTRO ==========
 
-    /**
-     * Registra un nuevo usuario en el sistema
-     */
-    @Transactional
-    public User registerUser(String username, String email, String password, Set<String> strRoles) {
-        log.info("Registrando nuevo usuario: {} con email: {}", username, email);
+    // Modificar el método registerUser en AuthService.java
+/**
+ * Registra un nuevo usuario en el sistema
+ */
+@Transactional
+public User registerUser(String username, String email, String password, String cc, Set<String> strRoles) {
+    log.info("Registrando nuevo usuario: {} con email: {}", username, email);
 
-        // Validaciones de unicidad
-        if (userRepository.existsByUsername(username)) {
-            log.warn("Intento de registro con username existente: {}", username);
-            throw new RuntimeException("El nombre de usuario ya existe");
-        }
-
-        if (userRepository.existsByEmail(email)) {
-            log.warn("Intento de registro con email existente: {}", email);
-            throw new RuntimeException("El email ya está en uso");
-        }
-
-        // Crear usuario
-        User user = User.builder()
-                .username(username)
-                .email(email)
-                .password(passwordEncoder.encode(password))
-                .status(User.UserStatus.ACTIVE)
-                .firstLogin(true)
-                .build();
-
-        // Asignar roles
-        Set<Role> roles = new HashSet<>();
-
-        if (strRoles == null || strRoles.isEmpty()) {
-            Role patientRole = roleRepository.findByName(Role.ERole.ROLE_PATIENT)
-                    .orElseThrow(() -> new RuntimeException("Error: Role PATIENT not found."));
-            roles.add(patientRole);
-            log.info("Usuario {} registrado con rol por defecto: PATIENT", username);
-        } else {
-            strRoles.forEach(role -> {
-                switch (role.toLowerCase()) {
-                    case "admin":
-                        Role adminRole = roleRepository.findByName(Role.ERole.ROLE_ADMIN)
-                                .orElseThrow(() -> new RuntimeException("Error: Role ADMIN not found."));
-                        roles.add(adminRole);
-                        log.info("Rol ADMIN asignado a usuario: {}", username);
-                        break;
-                    case "doctor":
-                        Role doctorRole = roleRepository.findByName(Role.ERole.ROLE_DOCTOR)
-                                .orElseThrow(() -> new RuntimeException("Error: Role DOCTOR not found."));
-                        roles.add(doctorRole);
-                        log.info("Rol DOCTOR asignado a usuario: {}", username);
-                        break;
-                    case "patient":
-                    default:
-                        Role patientRole = roleRepository.findByName(Role.ERole.ROLE_PATIENT)
-                                .orElseThrow(() -> new RuntimeException("Error: Role PATIENT not found."));
-                        roles.add(patientRole);
-                        log.info("Rol PATIENT asignado a usuario: {}", username);
-                        break;
-                }
-            });
-        }
-
-        user.setRoles(roles);
-        User savedUser = userRepository.save(user);
-        
-        log.info("Usuario {} registrado exitosamente con ID: {}", username, savedUser.getId());
-        return savedUser;
+    // Validaciones de unicidad
+    if (userRepository.existsByUsername(username)) {
+        log.warn("Intento de registro con username existente: {}", username);
+        throw new RuntimeException("El nombre de usuario ya existe");
     }
+
+    if (userRepository.existsByEmail(email)) {
+        log.warn("Intento de registro con email existente: {}", email);
+        throw new RuntimeException("El email ya está en uso");
+    }
+    
+    // Validar unicidad de cédula si se proporciona
+    if (cc != null && !cc.isEmpty()) {
+        // Asumiendo que tienes un método para verificar existencia por cc
+        if (userRepository.existsByCc(cc)) {
+            log.warn("Intento de registro con cédula existente: {}", cc);
+            throw new RuntimeException("La cédula ya está registrada en el sistema");
+        }
+    }
+
+    // Crear usuario
+    User user = User.builder()
+            .username(username)
+            .email(email)
+            .password(passwordEncoder.encode(password))
+            .cc(cc) // Nuevo campo cc
+            .status(User.UserStatus.ACTIVE)
+            .firstLogin(true)
+            .build();
+
+    // Asignar roles
+    Set<Role> roles = new HashSet<>();
+
+    if (strRoles == null || strRoles.isEmpty()) {
+        Role patientRole = roleRepository.findByName(Role.ERole.ROLE_PATIENT)
+                .orElseThrow(() -> new RuntimeException("Error: Role PATIENT not found."));
+        roles.add(patientRole);
+        log.info("Usuario {} registrado con rol por defecto: PATIENT", username);
+    } else {
+        strRoles.forEach(role -> {
+            switch (role.toLowerCase()) {
+                case "admin":
+                    Role adminRole = roleRepository.findByName(Role.ERole.ROLE_ADMIN)
+                            .orElseThrow(() -> new RuntimeException("Error: Role ADMIN not found."));
+                    roles.add(adminRole);
+                    log.info("Rol ADMIN asignado a usuario: {}", username);
+                    break;
+                case "doctor":
+                    Role doctorRole = roleRepository.findByName(Role.ERole.ROLE_DOCTOR)
+                            .orElseThrow(() -> new RuntimeException("Error: Role DOCTOR not found."));
+                    roles.add(doctorRole);
+                    log.info("Rol DOCTOR asignado a usuario: {}", username);
+                    break;
+                case "patient":
+                default:
+                    Role patientRole = roleRepository.findByName(Role.ERole.ROLE_PATIENT)
+                            .orElseThrow(() -> new RuntimeException("Error: Role PATIENT not found."));
+                    roles.add(patientRole);
+                    log.info("Rol PATIENT asignado a usuario: {}", username);
+                    break;
+            }
+        });
+    }
+
+    user.setRoles(roles);
+    User savedUser = userRepository.save(user);
+    
+    log.info("Usuario {} registrado exitosamente con ID: {}", username, savedUser.getId());
+    return savedUser;
+}
+
+// Método sobrecargado para compatibilidad con código existente
+@Transactional
+public User registerUser(String username, String email, String password, Set<String> strRoles) {
+    return registerUser(username, email, password, null, strRoles);
+}
 
     // ========== MÉTODOS DE GESTIÓN DE CONTRASEÑAS ==========
 

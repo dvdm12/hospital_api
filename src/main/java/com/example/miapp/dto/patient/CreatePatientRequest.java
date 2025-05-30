@@ -47,6 +47,12 @@ public class CreatePatientRequest {
     @Size(max = 50, message = "Insurance policy number must not exceed 50 characters")
     private String insurancePolicyNumber;
     
+    // Nuevo campo para cédula de ciudadanía
+    @NotBlank(message = "Identification number (CC) is required")
+    @Pattern(regexp = "^[0-9]{8,12}$", message = "Identification number must be between 8 and 12 digits")
+    @Size(max = 20, message = "Identification number must not exceed 20 characters")
+    private String cc;
+    
     // User account fields
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")

@@ -51,4 +51,9 @@ public interface PatientMapper {
     default String extractPassword(CreatePatientRequest request) {
         return request.getPassword();
     }
+    
+    // Nuevo método para extraer el número de cédula
+    default String extractCc(CreatePatientRequest request) {
+        return request.getCc();
+    }
 }

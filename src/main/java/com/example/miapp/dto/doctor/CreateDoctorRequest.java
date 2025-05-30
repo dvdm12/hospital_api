@@ -29,6 +29,12 @@ public class CreateDoctorRequest {
     @Size(max = 100, message = "Email must not exceed 100 characters")
     private String email;
     
+    // Nuevo campo para cédula de ciudadanía
+    @NotBlank(message = "Identification number (CC) is required")
+    @Pattern(regexp = "^[0-9]{8,12}$", message = "Identification number must be between 8 and 12 digits")
+    @Size(max = 20, message = "Identification number must not exceed 20 characters")
+    private String cc;
+    
     @NotBlank(message = "License number is required")
     @Size(max = 50, message = "License number must not exceed 50 characters")
     private String licenseNumber;

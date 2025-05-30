@@ -17,7 +17,8 @@ import java.util.Set;
 @Table(name = "users", 
        uniqueConstraints = {
            @UniqueConstraint(columnNames = "username"),
-           @UniqueConstraint(columnNames = "email")
+           @UniqueConstraint(columnNames = "email"),
+           @UniqueConstraint(columnNames = "cc")  // Nueva restricción de unicidad
        })
 @Getter
 @Setter
@@ -43,6 +44,10 @@ public class User {
     @Size(max = 50)
     @Email
     private String email;
+
+    /** User's identification number (cédula). */
+    @Column(length = 20)
+    private String cc;  // Nuevo campo para cédula de ciudadanía
 
     /** Hashed password. */
     @NotBlank

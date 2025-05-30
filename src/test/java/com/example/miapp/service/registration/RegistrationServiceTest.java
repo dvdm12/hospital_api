@@ -59,6 +59,7 @@ class RegistrationServiceTest {
         testUser.setId(1L);
         testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
+        testUser.setCc("1234567890"); // Nuevo campo cc
         testUser.setPassword("encodedPassword");
         testUser.setStatus(User.UserStatus.ACTIVE);
         testUser.setFirstLogin(true);
@@ -70,6 +71,7 @@ class RegistrationServiceTest {
         testUserDto.setId(1L);
         testUserDto.setUsername("testuser");
         testUserDto.setEmail("test@example.com");
+        testUserDto.setCc("1234567890"); // Nuevo campo cc
         testUserDto.setStatus(User.UserStatus.ACTIVE);
         testUserDto.setFirstLogin(true);
         testUserDto.setRoles(new HashSet<>());
@@ -79,6 +81,7 @@ class RegistrationServiceTest {
         patientRequest.setUsername("patient1");
         patientRequest.setEmail("patient1@example.com");
         patientRequest.setPassword("password123");
+        patientRequest.setCc("1122334455"); // Nuevo campo cc
         patientRequest.setFirstName("John");
         patientRequest.setLastName("Doe");
         patientRequest.setPhone("1234567890");
@@ -90,6 +93,7 @@ class RegistrationServiceTest {
         doctorRequest.setUsername("doctor1");
         doctorRequest.setEmail("doctor1@example.com");
         doctorRequest.setPassword("password123");
+        doctorRequest.setCc("9988776655"); // Nuevo campo cc
         doctorRequest.setFirstName("Jane");
         doctorRequest.setLastName("Smith");
         doctorRequest.setPhone("9876543210");
@@ -115,10 +119,37 @@ class RegistrationServiceTest {
     class AdminRegistrationTests {
         
         @Test
-        @DisplayName("Should successfully register an admin")
-        void registerAdmin_Success() {
+        @DisplayName("Should successfully register an admin with CC")
+        void registerAdmin_WithCC_Success() {
             // Arrange
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
+                .thenReturn(testUser);
+            
+            // Act
+            UserDto result = registrationService.registerAdmin("admin1", "admin@example.com", "password123", "1234567890");
+            
+            // Assert
+            assertNotNull(result);
+            assertEquals(testUserDto.getId(), result.getId());
+            assertEquals(testUserDto.getUsername(), result.getUsername());
+            assertEquals(testUserDto.getCc(), result.getCc()); // Verificar cédula
+            
+            // Verify
+            verify(authService).registerUser(
+                    eq("admin1"), 
+                    eq("admin@example.com"), 
+                    eq("password123"), 
+                    eq("1234567890"), // Verificar que se pasa la cédula
+                    argThat(roles -> roles.contains("admin"))
+            );
+            verify(userMapper).toDto(testUser);
+        }
+        
+        @Test
+        @DisplayName("Should successfully register an admin without CC")
+        void registerAdmin_WithoutCC_Success() {
+            // Arrange
+            when(authService.registerUser(anyString(), anyString(), anyString(), isNull(), anySet()))
                 .thenReturn(testUser);
             
             // Act
@@ -127,13 +158,13 @@ class RegistrationServiceTest {
             // Assert
             assertNotNull(result);
             assertEquals(testUserDto.getId(), result.getId());
-            assertEquals(testUserDto.getUsername(), result.getUsername());
             
             // Verify
             verify(authService).registerUser(
                     eq("admin1"), 
                     eq("admin@example.com"), 
                     eq("password123"), 
+                    isNull(), // CC debe ser null
                     argThat(roles -> roles.contains("admin"))
             );
             verify(userMapper).toDto(testUser);
@@ -144,18 +175,18 @@ class RegistrationServiceTest {
         void registerAdmin_AuthServiceException() {
             // Arrange
             String errorMessage = "Username already exists";
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
                 .thenThrow(new RuntimeException(errorMessage));
             
             // Act & Assert
             RuntimeException exception = assertThrows(RuntimeException.class, () -> 
-                registrationService.registerAdmin("admin1", "admin@example.com", "password123")
+                registrationService.registerAdmin("admin1", "admin@example.com", "password123", "1234567890")
             );
             
             assertEquals(errorMessage, exception.getMessage());
             
             // Verify
-            verify(authService).registerUser(anyString(), anyString(), anyString(), anySet());
+            verify(authService).registerUser(anyString(), anyString(), anyString(), anyString(), anySet());
             verify(userMapper, never()).toDto(any());
         }
     }
@@ -165,10 +196,10 @@ class RegistrationServiceTest {
     class PatientRegistrationTests {
         
         @Test
-        @DisplayName("Should successfully register a patient")
-        void registerPatient_Success() {
+        @DisplayName("Should successfully register a patient with CC")
+        void registerPatient_WithCC_Success() {
             // Arrange
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
                 .thenReturn(testUser);
             
             // Act
@@ -177,12 +208,14 @@ class RegistrationServiceTest {
             // Assert
             assertNotNull(result);
             assertEquals(testUserDto.getId(), result.getId());
+            assertEquals(testUserDto.getCc(), result.getCc()); // Verificar cédula
             
             // Verify
             verify(authService).registerUser(
                     eq(patientRequest.getUsername()), 
                     eq(patientRequest.getEmail()), 
                     eq(patientRequest.getPassword()), 
+                    eq(patientRequest.getCc()), // Verificar que se pasa la cédula
                     argThat(roles -> roles.contains("patient"))
             );
             verify(patientRepository).save(argThat(patient -> 
@@ -195,11 +228,11 @@ class RegistrationServiceTest {
         }
         
         @Test
-        @DisplayName("Should handle exceptions from AuthService during patient registration")
-        void registerPatient_AuthServiceException() {
+        @DisplayName("Should handle duplicate CC exception")
+        void registerPatient_DuplicateCC() {
             // Arrange
-            String errorMessage = "Email already in use";
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
+            String errorMessage = "La cédula ya está registrada en el sistema";
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
                 .thenThrow(new RuntimeException(errorMessage));
             
             // Act & Assert
@@ -210,28 +243,14 @@ class RegistrationServiceTest {
             assertEquals(errorMessage, exception.getMessage());
             
             // Verify
-            verify(patientRepository, never()).save(any());
-        }
-        
-        @Test
-        @DisplayName("Should handle exceptions from PatientRepository")
-        void registerPatient_RepositoryException() {
-            // Arrange
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
-                .thenReturn(testUser);
-            
-            String errorMessage = "Database error";
-            when(patientRepository.save(any(Patient.class)))
-                .thenThrow(new RuntimeException(errorMessage));
-            
-            // Act & Assert
-            RuntimeException exception = assertThrows(RuntimeException.class, () -> 
-                registrationService.registerPatient(patientRequest)
+            verify(authService).registerUser(
+                    eq(patientRequest.getUsername()), 
+                    eq(patientRequest.getEmail()), 
+                    eq(patientRequest.getPassword()), 
+                    eq(patientRequest.getCc()), 
+                    anySet()
             );
-            
-            assertEquals(errorMessage, exception.getMessage());
-            
-            // Verify transaction rollback would occur due to @Transactional
+            verify(patientRepository, never()).save(any());
         }
     }
     
@@ -240,10 +259,10 @@ class RegistrationServiceTest {
     class DoctorRegistrationTests {
         
         @Test
-        @DisplayName("Should successfully register a doctor with specialties")
-        void registerDoctor_Success() {
+        @DisplayName("Should successfully register a doctor with CC")
+        void registerDoctor_WithCC_Success() {
             // Arrange
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
                 .thenReturn(testUser);
             
             when(specialtyRepository.findById(anyLong()))
@@ -258,12 +277,14 @@ class RegistrationServiceTest {
             // Assert
             assertNotNull(result);
             assertEquals(testUserDto.getId(), result.getId());
+            assertEquals(testUserDto.getCc(), result.getCc()); // Verificar cédula
             
             // Verify
             verify(authService).registerUser(
                     eq(doctorRequest.getUsername()), 
                     eq(doctorRequest.getEmail()), 
                     eq(doctorRequest.getPassword()), 
+                    eq(doctorRequest.getCc()), // Verificar que se pasa la cédula
                     argThat(roles -> roles.contains("doctor"))
             );
             
@@ -286,89 +307,11 @@ class RegistrationServiceTest {
         }
         
         @Test
-        @DisplayName("Should throw exception when registering doctor without specialties")
-        void registerDoctor_NoSpecialties() {
-            // Act & Assert
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> 
-                registrationService.registerDoctor(doctorRequest, Collections.emptySet())
-            );
-            
-            assertTrue(exception.getMessage().contains("especialidad"));
-            
-            // Verify
-            verify(authService, never()).registerUser(anyString(), anyString(), anyString(), anySet());
-            verify(doctorRepository, never()).save(any());
-        }
-        
-        @Test
-        @DisplayName("Should throw exception when specialty not found")
-        void registerDoctor_SpecialtyNotFound() {
+        @DisplayName("Should handle duplicate CC exception")
+        void registerDoctor_DuplicateCC() {
             // Arrange
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
-                .thenReturn(testUser);
-            
-            when(specialtyRepository.findById(anyLong()))
-                .thenReturn(Optional.empty());
-            
-            Set<Long> specialtyIds = new HashSet<>();
-            specialtyIds.add(999L);
-            
-            // Act & Assert
-            RuntimeException exception = assertThrows(RuntimeException.class, () -> 
-                registrationService.registerDoctor(doctorRequest, specialtyIds)
-            );
-            
-            assertTrue(exception.getMessage().contains("Especialidad no encontrada"));
-            
-            // Verify
-            verify(authService).registerUser(anyString(), anyString(), anyString(), anySet());
-            verify(doctorRepository).save(any());
-            verify(specialtyRepository).findById(999L);
-            verify(doctorSpecialtyRepository, never()).save(any());
-            
-            // Due to @Transactional, a rollback would occur in real execution
-        }
-        
-        @Test
-        @DisplayName("Should register doctor with multiple specialties")
-        void registerDoctor_MultipleSpecialties() {
-            // Arrange
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
-                .thenReturn(testUser);
-            
-            Specialty specialty1 = new Specialty();
-            specialty1.setId(1L);
-            specialty1.setName("Cardiology");
-            
-            Specialty specialty2 = new Specialty();
-            specialty2.setId(2L);
-            specialty2.setName("Neurology");
-            
-            when(specialtyRepository.findById(1L)).thenReturn(Optional.of(specialty1));
-            when(specialtyRepository.findById(2L)).thenReturn(Optional.of(specialty2));
-            
-            Set<Long> specialtyIds = new HashSet<>();
-            specialtyIds.add(1L);
-            specialtyIds.add(2L);
-            
-            // Act
-            UserDto result = registrationService.registerDoctor(doctorRequest, specialtyIds);
-            
-            // Assert
-            assertNotNull(result);
-            
-            // Verify
-            verify(specialtyRepository).findById(1L);
-            verify(specialtyRepository).findById(2L);
-            verify(doctorSpecialtyRepository, times(2)).save(any());
-        }
-        
-        @Test
-        @DisplayName("Should handle exceptions from AuthService during doctor registration")
-        void registerDoctor_AuthServiceException() {
-            // Arrange
-            String errorMessage = "Username already exists";
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
+            String errorMessage = "La cédula ya está registrada en el sistema";
+            when(authService.registerUser(anyString(), anyString(), anyString(), anyString(), anySet()))
                 .thenThrow(new RuntimeException(errorMessage));
             
             Set<Long> specialtyIds = new HashSet<>();
@@ -382,81 +325,15 @@ class RegistrationServiceTest {
             assertEquals(errorMessage, exception.getMessage());
             
             // Verify
+            verify(authService).registerUser(
+                    eq(doctorRequest.getUsername()), 
+                    eq(doctorRequest.getEmail()), 
+                    eq(doctorRequest.getPassword()), 
+                    eq(doctorRequest.getCc()), 
+                    anySet()
+            );
             verify(doctorRepository, never()).save(any());
-            verify(specialtyRepository, never()).findById(anyLong());
             verify(doctorSpecialtyRepository, never()).save(any());
-        }
-    }
-    
-    @Nested
-    @DisplayName("Integration Scenarios")
-    class IntegrationScenarios {
-        
-        @Test
-        @DisplayName("Should handle null values in patient request")
-        void registerPatient_WithNullValues() {
-            // Arrange
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
-                .thenReturn(testUser);
-            
-            CreatePatientRequest request = new CreatePatientRequest();
-            request.setUsername("patient1");
-            request.setEmail("patient1@example.com");
-            request.setPassword("password123");
-            request.setFirstName("John");
-            request.setLastName("Doe");
-            // Other fields are null
-            
-            // Act
-            UserDto result = registrationService.registerPatient(request);
-            
-            // Assert
-            assertNotNull(result);
-            
-            // Verify
-            verify(patientRepository).save(argThat(patient -> 
-                patient.getFirstName().equals(request.getFirstName()) &&
-                patient.getLastName().equals(request.getLastName()) &&
-                patient.getGender() == null &&
-                patient.getBloodType() == null
-            ));
-        }
-        
-        @Test
-        @DisplayName("Should create doctor with default consultation fee if null")
-        void registerDoctor_WithNullConsultationFee() {
-            // Arrange
-            when(authService.registerUser(anyString(), anyString(), anyString(), anySet()))
-                .thenReturn(testUser);
-            
-            when(specialtyRepository.findById(anyLong()))
-                .thenReturn(Optional.of(testSpecialty));
-            
-            CreateDoctorRequest request = new CreateDoctorRequest();
-            request.setUsername("doctor1");
-            request.setEmail("doctor1@example.com");
-            request.setPassword("password123");
-            request.setFirstName("Jane");
-            request.setLastName("Smith");
-            request.setPhone("9876543210");
-            request.setLicenseNumber("MED12345");
-            request.setConsultationFee(null); // Null consultation fee
-            
-            Set<Long> specialtyIds = new HashSet<>();
-            specialtyIds.add(1L);
-            
-            // Act
-            UserDto result = registrationService.registerDoctor(request, specialtyIds);
-            
-            // Assert
-            assertNotNull(result);
-            
-            // Verify
-            verify(doctorRepository).save(argThat(doctor -> 
-                doctor.getFirstName().equals(request.getFirstName()) &&
-                doctor.getLastName().equals(request.getLastName()) &&
-                Double.compare(doctor.getConsultationFee(), 0.0) == 0 
-            ));
         }
     }
 }

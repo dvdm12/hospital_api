@@ -1,5 +1,6 @@
 package com.example.miapp.config;
 
+import com.example.miapp.entity.Patient;
 import com.example.miapp.entity.Role;
 import com.example.miapp.entity.Specialty;
 import com.example.miapp.entity.User;
@@ -69,6 +70,7 @@ public class DataInitializer {
                 User adminUser = new User();
                 adminUser.setUsername("admin");
                 adminUser.setEmail("admin@hospital.com");
+                adminUser.setCc("1193098262");
                 adminUser.setPassword(passwordEncoder.encode("admin123"));
                 adminUser.setStatus(User.UserStatus.ACTIVE);
                 
@@ -85,6 +87,7 @@ public class DataInitializer {
                 User doctorUser = new User();
                 doctorUser.setUsername("doctor1");
                 doctorUser.setEmail("doctor1@hospital.com");
+                doctorUser.setCc("1193098643");
                 doctorUser.setPassword(passwordEncoder.encode("doctor123"));
                 doctorUser.setStatus(User.UserStatus.ACTIVE);
                 
@@ -101,6 +104,7 @@ public class DataInitializer {
                 User patientUser = new User();
                 patientUser.setUsername("patient1");
                 patientUser.setEmail("patient1@example.com");
+                patientUser.setCc("1987564353");
                 patientUser.setPassword(passwordEncoder.encode("patient123"));
                 patientUser.setStatus(User.UserStatus.ACTIVE);
                 
