@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.6</version>
+        <version>3.2.3</version>
         <relativePath/>
     </parent>
 
@@ -23,7 +23,7 @@
         <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
         <springdoc.version>2.3.0</springdoc.version>
         <lombok.version>1.18.36</lombok.version>
-        <spring-boot.configuration-processor.version>3.4.6</spring-boot.configuration-processor.version>
+        <spring-boot.configuration-processor.version>3.2.3</spring-boot.configuration-processor.version>
         <maven.surefire.plugin.version>3.1.2</maven.surefire.plugin.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <spotbugs.version>4.8.3</spotbugs.version>
