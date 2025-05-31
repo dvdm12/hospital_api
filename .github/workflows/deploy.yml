@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [hospital-api/v3]
 
 jobs:
   Deploy:
