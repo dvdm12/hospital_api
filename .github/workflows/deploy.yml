@@ -39,6 +39,6 @@ jobs:
             cd ${PROJECT_PATH}
             git checkout main
             git fetch --all
-            git reset --hard origin/main
+            git reset --hard origin/hospital-api/v3
             git pull origin main
           EOF
