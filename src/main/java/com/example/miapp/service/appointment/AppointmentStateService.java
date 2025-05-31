@@ -1,16 +1,20 @@
 package com.example.miapp.service.appointment;
 
-import com.example.miapp.entity.Appointment.AppointmentStatus;
+import com.example.miapp.entity.Appointment;
+import com.example.miapp.entity.Notification;
+import com.example.miapp.entity.User;
+import com.example.miapp.exception.AppointmentValidationException;
 import com.example.miapp.repository.AppointmentRepository;
+import com.example.miapp.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
- * Service responsible for appointment state transitions (Single Responsibility)
+ * Servicio responsable de las operaciones de estado de citas
  */
 @Service
 @Transactional
@@ -19,65 +23,80 @@ import java.time.LocalDateTime;
 public class AppointmentStateService {
 
     private final AppointmentRepository appointmentRepository;
+    private final NotificationRepository notificationRepository;
+    private final AppointmentQueryService queryService;
+    
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     /**
-     * Confirms an appointment
-     */
-    public void confirmAppointment(Long appointmentId) {
-        log.info("Confirming appointment with ID: {}", appointmentId);
-        
-        appointmentRepository.updateConfirmation(appointmentId, true);
-        appointmentRepository.updateStatus(appointmentId, AppointmentStatus.CONFIRMED, null);
-        
-        log.info("Appointment {} confirmed successfully", appointmentId);
-    }
-
-    /**
-     * Cancels an appointment
+     * Cancela una cita y notifica a los usuarios involucrados
      */
     public void cancelAppointment(Long appointmentId, String reason) {
-        log.info("Canceling appointment with ID: {} with reason: {}", appointmentId, reason);
+        log.info("Cancelando cita con ID: {} con motivo: {}", appointmentId, reason);
         
-        appointmentRepository.updateStatus(appointmentId, AppointmentStatus.CANCELED, null);
-        appointmentRepository.updateNotes(appointmentId, "Canceled: " + reason, null);
+        // Obtener la cita completa para poder acceder a doctor y paciente
+        Appointment appointment = queryService.findAppointmentById(appointmentId);
         
-        log.info("Appointment {} canceled successfully", appointmentId);
-    }
-
-    /**
-     * Completes an appointment
-     */
-    public void completeAppointment(Long appointmentId, String notes) {
-        log.info("Completing appointment with ID: {}", appointmentId);
-        
-        appointmentRepository.updateStatus(appointmentId, AppointmentStatus.COMPLETED, null);
-        
-        if (notes != null && !notes.trim().isEmpty()) {
-            appointmentRepository.updateNotes(appointmentId, notes, null);
+        // Validar que la cita no esté ya completada
+        if (appointment.getStatus() == Appointment.AppointmentStatus.COMPLETED) {
+            throw new AppointmentValidationException("No se puede cancelar una cita ya completada");
         }
         
-        log.info("Appointment {} completed successfully", appointmentId);
+        // Validar que la cita no esté ya cancelada
+        if (appointment.getStatus() == Appointment.AppointmentStatus.CANCELED) {
+            throw new AppointmentValidationException("Esta cita ya ha sido cancelada");
+        }
+        
+        // Actualizar estado de la cita
+        appointment.setStatus(Appointment.AppointmentStatus.CANCELED);
+        appointment.setNotes("Cancelada: " + reason);
+        appointmentRepository.save(appointment);
+        
+        // Notificar al doctor
+        if (appointment.getDoctor() != null && appointment.getDoctor().getUser() != null) {
+            notifyUser(
+                appointment.getDoctor().getUser(),
+                "Cita cancelada",
+                "Su cita con " + appointment.getPatient().getFullName() + 
+                " programada para " + appointment.getDate().format(DATE_FORMATTER) + 
+                " ha sido cancelada por un administrador. Motivo: " + reason,
+                Notification.NotificationType.APPOINTMENT_CANCELLATION,
+                appointment.getId()
+            );
+        }
+        
+        // Notificar al paciente
+        if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
+            notifyUser(
+                appointment.getPatient().getUser(),
+                "Cita cancelada",
+                "Su cita con " + appointment.getDoctor().getFullName() + 
+                " programada para " + appointment.getDate().format(DATE_FORMATTER) + 
+                " ha sido cancelada por un administrador. Motivo: " + reason,
+                Notification.NotificationType.APPOINTMENT_CANCELLATION,
+                appointment.getId()
+            );
+        }
+        
+        log.info("Cita {} cancelada exitosamente y usuarios notificados", appointmentId);
     }
-
+    
     /**
-     * Marks appointment as no-show
+     * Método auxiliar para enviar notificaciones a usuarios
      */
-    public void markAsNoShow(Long appointmentId) {
-        log.info("Marking appointment {} as no-show", appointmentId);
+    private void notifyUser(User user, String title, String content, 
+                          Notification.NotificationType type, Long entityId) {
+        Notification notification = Notification.builder()
+                .user(user)
+                .title(title)
+                .content(content)
+                .type(type)
+                .status(Notification.NotificationStatus.UNREAD)
+                .entityType(Notification.EntityType.APPOINTMENT)
+                .entityId(entityId)
+                .build();
         
-        appointmentRepository.updateStatus(appointmentId, AppointmentStatus.NO_SHOW, null);
-        
-        log.info("Appointment {} marked as no-show", appointmentId);
-    }
-
-    /**
-     * Reschedules an appointment
-     */
-    public void rescheduleAppointment(Long appointmentId, LocalDateTime newDate, LocalDateTime newEndTime) {
-        log.info("Rescheduling appointment {} to {}", appointmentId, newDate);
-        
-        appointmentRepository.rescheduleAppointment(appointmentId, newDate, newEndTime, null);
-        
-        log.info("Appointment {} rescheduled successfully", appointmentId);
+        notificationRepository.save(notification);
+        log.debug("Notificación enviada al usuario: {}", user.getUsername());
     }
 }

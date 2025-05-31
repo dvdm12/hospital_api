@@ -1,14 +1,8 @@
 package com.example.miapp.service.appointment;
 
-import com.example.miapp.dto.appointment.CreateAppointmentRequest;
 import com.example.miapp.dto.appointment.AppointmentDto;
-import com.example.miapp.entity.Appointment;
-import com.example.miapp.entity.Doctor;
-import com.example.miapp.entity.Patient;
-import com.example.miapp.mapper.AppointmentMapper;
-import com.example.miapp.repository.AppointmentRepository;
-import com.example.miapp.service.doctor.DoctorService;
-import com.example.miapp.service.patient.PatientService;
+import com.example.miapp.exception.AppointmentValidationException;
+import com.example.miapp.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,10 +10,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 /**
- * Main business service that orchestrates appointment operations (Facade Pattern)
+ * Servicio principal que orquesta operaciones de citas
  */
 @Service
 @Transactional
@@ -27,116 +21,61 @@ import java.time.LocalDateTime;
 @Slf4j
 public class AppointmentBusinessService {
 
-    private final AppointmentRepository appointmentRepository;
-    private final AppointmentMapper appointmentMapper;
-    private final AppointmentValidationService validationService;
     private final AppointmentStateService stateService;
     private final AppointmentQueryService queryService;
-    private final DoctorService doctorService;
-    private final PatientService patientService;
 
     /**
-     * Schedules a new appointment with complete validation
+     * Lista todas las citas del sistema
      */
-    public AppointmentDto scheduleAppointment(CreateAppointmentRequest request) {
-        log.info("Scheduling appointment for patient {} with doctor {} at {}", 
-                request.getPatientId(), request.getDoctorId(), request.getDate());
-
-        // Get entities through dedicated services
-        Doctor doctor = doctorService.findDoctorById(request.getDoctorId());
-        Patient patient = patientService.findPatientById(request.getPatientId());
-
-        // Validate appointment creation
-        validationService.validateAppointmentCreation(request, doctor);
-
-        // Create and save appointment
-        Appointment appointment = createAppointmentEntity(request, doctor, patient);
-        Appointment savedAppointment = appointmentRepository.save(appointment);
+    @Transactional(readOnly = true)
+    public Page<AppointmentDto> getAllAppointments(Pageable pageable) {
+        log.info("Solicitando listado de todas las citas");
         
-        log.info("Appointment scheduled successfully with ID: {}", savedAppointment.getId());
-        return appointmentMapper.toDto(savedAppointment);
+        Page<AppointmentDto> appointments = queryService.getAllAppointments(pageable);
+        
+        if (appointments.isEmpty()) {
+            log.warn("No se encontraron citas en el sistema");
+            throw new ResourceNotFoundException("No hay citas registradas en el sistema");
+        }
+        
+        return appointments;
     }
-
+    
     /**
-     * Confirms an appointment
+     * Lista las citas de un día específico
      */
-    public void confirmAppointment(Long appointmentId) {
-        Appointment appointment = queryService.findAppointmentById(appointmentId);
-        validationService.validateAppointmentConfirmation(appointment);
-        stateService.confirmAppointment(appointmentId);
+    @Transactional(readOnly = true)
+    public Page<AppointmentDto> getAppointmentsByDay(LocalDate date, Pageable pageable) {
+        // Si no se proporciona fecha, usar la fecha actual
+        LocalDate targetDate = (date != null) ? date : LocalDate.now();
+        
+        log.info("Solicitando listado de citas para el día: {}", targetDate);
+        
+        Page<AppointmentDto> appointments = queryService.getAppointmentsByDay(targetDate, pageable);
+        
+        if (appointments.isEmpty()) {
+            log.warn("No se encontraron citas para el día: {}", targetDate);
+            throw new ResourceNotFoundException("No hay citas programadas para el día " + targetDate);
+        }
+        
+        return appointments;
     }
 
     /**
-     * Cancels an appointment
+     * Cancela una cita con notificación a los usuarios involucrados
      */
     public void cancelAppointment(Long appointmentId, String reason) {
-        Appointment appointment = queryService.findAppointmentById(appointmentId);
-        validationService.validateAppointmentCancellation(appointment);
-        stateService.cancelAppointment(appointmentId, reason);
-    }
-
-    /**
-     * Reschedules an appointment
-     */
-    public AppointmentDto rescheduleAppointment(Long appointmentId, LocalDateTime newDate, LocalDateTime newEndTime) {
-        Appointment appointment = queryService.findAppointmentById(appointmentId);
+        log.info("Solicitando cancelación de cita: {} con motivo: {}", appointmentId, reason);
         
-        validationService.validateAppointmentCancellation(appointment); // Can't reschedule completed
-        validationService.validateAppointmentReschedule(appointmentId, newDate, newEndTime, appointment.getDoctor().getId());
-        
-        stateService.rescheduleAppointment(appointmentId, newDate, newEndTime);
-        
-        return queryService.getAppointment(appointmentId);
-    }
-
-    /**
-     * Completes an appointment
-     */
-    public void completeAppointment(Long appointmentId, String notes) {
-        Appointment appointment = queryService.findAppointmentById(appointmentId);
-        validationService.validateAppointmentCompletion(appointment);
-        stateService.completeAppointment(appointmentId, notes);
-    }
-
-    /**
-     * Marks appointment as no-show
-     */
-    public void markAsNoShow(Long appointmentId) {
-        stateService.markAsNoShow(appointmentId);
-    }
-
-    /**
-     * Processes no-show appointments (scheduled job)
-     */
-    public void processNoShowAppointments(int gracePeriodMinutes) {
-        log.info("Processing no-show appointments with grace period of {} minutes", gracePeriodMinutes);
-
-        // Calcular el tiempo límite restando el período de gracia del tiempo actual
-        LocalDateTime currentTime = LocalDateTime.now();
-        LocalDateTime thresholdTime = currentTime.minusMinutes(gracePeriodMinutes);
-        
-        // Usar el método de repositorio modificado con el tiempo límite calculado
-        Page<Appointment> overdueAppointments = appointmentRepository.findAppointmentsToMarkAsNoShow(
-                thresholdTime, Pageable.unpaged());
-
-        for (Appointment appointment : overdueAppointments) {
-            stateService.markAsNoShow(appointment.getId());
+        try {
+            stateService.cancelAppointment(appointmentId, reason);
+        } catch (ResourceNotFoundException | AppointmentValidationException e) {
+            // Estas excepciones ya tienen mensajes apropiados, solo las propagamos
+            throw e;
+        } catch (Exception e) {
+            // Cualquier otra excepción la envolvemos para dar un mensaje más claro
+            log.error("Error inesperado al cancelar cita {}: {}", appointmentId, e.getMessage(), e);
+            throw new RuntimeException("Error al cancelar la cita: " + e.getMessage(), e);
         }
-
-        log.info("Processed {} no-show appointments", overdueAppointments.getTotalElements());
-    }
-
-    // Private helper methods
-
-    private Appointment createAppointmentEntity(CreateAppointmentRequest request, Doctor doctor, Patient patient) {
-        LocalDateTime endTime = request.getEndTime() != null ? 
-                request.getEndTime() : request.getDate().plusMinutes(30);
-
-        Appointment appointment = appointmentMapper.toEntity(request);
-        appointment.setDoctor(doctor);
-        appointment.setPatient(patient);
-        appointment.setEndTime(endTime);
-
-        return appointment;
     }
 }

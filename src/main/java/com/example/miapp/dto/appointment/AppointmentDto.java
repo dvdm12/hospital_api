@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * DTO for Appointment entity responses
+ * DTO para representar información de citas
  */
 @Data
 public class AppointmentDto {
@@ -19,8 +19,5 @@ public class AppointmentDto {
     private AppointmentStatus status;
     private String notes;
     private boolean confirmed;
-    private LocalDateTime confirmationDate;
     private String location;
-    private long durationMinutes;
-    private boolean overdue;
 }

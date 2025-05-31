@@ -1,10 +1,9 @@
 package com.example.miapp.service.appointment;
 
 import com.example.miapp.dto.appointment.AppointmentDto;
-import com.example.miapp.dto.appointment.AppointmentSearchCriteria;
-import com.example.miapp.dto.appointment.AvailableSlotDto;
 import com.example.miapp.entity.Appointment;
-import com.example.miapp.mapper.AppointmentMapper;
+import com.example.miapp.exception.ResourceNotFoundException;
+import com.example.miapp.mapper.ManualAppointmentMapper;
 import com.example.miapp.repository.AppointmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,11 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
-import java.util.Optional;
 
 /**
- * Service responsible for appointment queries (Single Responsibility)
+ * Servicio responsable de consultas de citas
  */
 @Service
 @Transactional(readOnly = true)
@@ -29,100 +26,57 @@ import java.util.Optional;
 public class AppointmentQueryService {
 
     private final AppointmentRepository appointmentRepository;
-    private final AppointmentMapper appointmentMapper;
+    private final ManualAppointmentMapper appointmentMapper;
 
     /**
-     * Gets appointment by ID
+     * Obtiene todas las citas del sistema
      */
-    public AppointmentDto getAppointment(Long appointmentId) {
-        Appointment appointment = findAppointmentById(appointmentId);
-        return appointmentMapper.toDto(appointment);
-    }
-
-    /**
-     * Gets available time slots for a doctor
-     */
-    public List<AvailableSlotDto> getAvailableSlots(Long doctorId, LocalDate date) {
-        log.info("Finding available slots for doctor {} on {}", doctorId, date);
+    public Page<AppointmentDto> getAllAppointments(Pageable pageable) {
+        log.info("Obteniendo todas las citas del sistema");
         
-        List<Object[]> results = appointmentRepository.findAvailableTimeSlots(doctorId, date.atStartOfDay());
-        return appointmentMapper.mapToAvailableSlots(results);
+        try {
+            Page<Appointment> appointments = appointmentRepository.findAll(pageable);
+            log.debug("Encontradas {} citas", appointments.getTotalElements());
+            
+            return appointmentMapper.toDtoPage(appointments);
+        } catch (Exception e) {
+            log.error("Error al obtener citas: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
-     * Gets appointments for a patient
+     * Obtiene las citas de un día específico
      */
-    public Page<AppointmentDto> getPatientAppointments(Long patientId, Pageable pageable) {
-        log.info("Fetching appointments for patient {}", patientId);
+    public Page<AppointmentDto> getAppointmentsByDay(LocalDate date, Pageable pageable) {
+        log.info("Obteniendo citas para el día: {}", date);
         
-        Page<Appointment> appointments = appointmentRepository.findByPatientId(patientId, pageable);
-        return appointments.map(appointmentMapper::toDto);
+        try {
+            LocalDateTime startOfDay = date.atStartOfDay();
+            LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+            
+            Page<Appointment> appointments = appointmentRepository.findByDateBetween(
+                    startOfDay, endOfDay, pageable);
+            
+            log.debug("Encontradas {} citas para el día {}", appointments.getTotalElements(), date);
+            
+            return appointmentMapper.toDtoPage(appointments);
+        } catch (Exception e) {
+            log.error("Error al obtener citas del día {}: {}", date, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
-     * Gets appointments for a doctor
-     */
-    public Page<AppointmentDto> getDoctorAppointments(Long doctorId, Pageable pageable) {
-        log.info("Fetching appointments for doctor {}", doctorId);
-        
-        Page<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId, pageable);
-        return appointments.map(appointmentMapper::toDto);
-    }
-
-    /**
-     * Gets today's appointments for a doctor
-     */
-    public List<AppointmentDto> getTodayAppointments(Long doctorId) {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
-
-        Page<Appointment> appointments = appointmentRepository.findByDoctorIdAndDateBetween(
-                doctorId, startOfDay, endOfDay, Pageable.unpaged());
-
-        return appointments.map(appointmentMapper::toDto).getContent();
-    }
-
-    /**
-     * Searches appointments with criteria
-     */
-    public Page<AppointmentDto> searchAppointments(AppointmentSearchCriteria criteria, Pageable pageable) {
-        log.info("Searching appointments with criteria: {}", criteria);
-
-        Page<Appointment> appointments = appointmentRepository.searchAppointments(
-                criteria.getDoctorId(),
-                criteria.getPatientId(),
-                criteria.getStatus(),
-                criteria.getStartDate(),
-                criteria.getEndDate(),
-                criteria.getReasonPattern(),
-                pageable
-        );
-
-        return appointments.map(appointmentMapper::toDto);
-    }
-
-    /**
-     * Gets next appointment for a patient
-     */
-    public Optional<AppointmentDto> getNextAppointment(Long patientId) {
-        Optional<Appointment> nextAppointment = appointmentRepository.findNextAppointmentForPatient(
-                patientId, LocalDateTime.now());
-
-        return nextAppointment.map(appointmentMapper::toDto);
-    }
-
-    /**
-     * Gets appointment statistics by status
-     */
-    public List<Object[]> getAppointmentStatusStats() {
-        return appointmentRepository.countAppointmentsByStatus();
-    }
-
-    /**
-     * Finds appointment by ID (internal use)
+     * Encuentra una cita por su ID
      */
     public Appointment findAppointmentById(Long appointmentId) {
+        log.info("Buscando cita con ID: {}", appointmentId);
+        
         return appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found with ID: " + appointmentId));
+                .orElseThrow(() -> {
+                    log.error("Cita no encontrada con ID: {}", appointmentId);
+                    return new ResourceNotFoundException("Cita no encontrada con ID: " + appointmentId);
+                });
     }
 }
