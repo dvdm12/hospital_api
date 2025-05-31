@@ -29,16 +29,14 @@ jobs:
           # Add host to known hosts
           ssh-keyscan -H ${HOST_NAME} >> ~/.ssh/known_hosts
           
-          # Use -T flag to disable pseudo-terminal allocation
           ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${USER_NAME}@${HOST_NAME} <<EOF
             if [ ! -d "${PROJECT_PATH}/.git" ]; then
               mkdir -p \$(dirname ${PROJECT_PATH})
               git clone ${GIT_REPO} ${PROJECT_PATH}
             fi
-
             cd ${PROJECT_PATH}
-            git checkout main
+            git checkout hospital-api/v3
             git fetch --all
             git reset --hard origin/hospital-api/v3
-            git pull origin main
+            git pull origin hospital-api/v3
           EOF
