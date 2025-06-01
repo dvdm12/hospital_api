@@ -487,4 +487,5 @@ public class PrescriptionController {
         log.warn("Errores de validación en la solicitud: {}", errors);
         return ResponseEntity.badRequest().body(errors);
     }
+
 }
